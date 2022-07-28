@@ -96,7 +96,11 @@ static struct platform_device subdevs[] = {
 	{
 		.name		= "mpfs-generic-service",
 		.id		= -1,
-	}
+	},
+	{
+		.name		= "mpfs-iap",
+		.id		= -1,
+	},
 };
 
 static int mpfs_sys_controller_probe(struct platform_device *pdev)
@@ -140,13 +144,14 @@ no_flash:
 
 	platform_set_drvdata(pdev, sys_controller);
 
-	dev_info(&pdev->dev, "Registered MPFS system controller\n");
 
 	for (i = 0; i < ARRAY_SIZE(subdevs); i++) {
 		subdevs[i].dev.parent = dev;
 		if (platform_device_register(&subdevs[i]))
 			dev_warn(dev, "Error registering sub device %s\n", subdevs[i].name);
 	}
+
+	dev_info(&pdev->dev, "Registered MPFS system controller\n");
 
 	return 0;
 }
