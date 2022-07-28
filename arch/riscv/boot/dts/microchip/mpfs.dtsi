@@ -173,11 +173,6 @@
 		#clock-cells = <0>;
 	};
 
-	syscontroller: syscontroller {
-		compatible = "microchip,mpfs-sys-controller";
-		mboxes = <&mbox 0>;
-	};
-
 	soc {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -496,11 +491,36 @@
 
 		mbox: mailbox@37020000 {
 			compatible = "microchip,mpfs-mailbox";
-			reg = <0x0 0x37020000 0x0 0x1000>, <0x0 0x2000318C 0x0 0x40>;
+			reg = <0x0 0x37020000 0x0 0x58>, <0x0 0x2000318C 0x0 0x40>,
+			      <0x0 0x37020800 0x0 0x100>;
 			interrupt-parent = <&plic>;
 			interrupts = <96>;
 			#mbox-cells = <1>;
 			status = "disabled";
 		};
+
+		sys_ctrl_qspi: spi@37020100 {
+			compatible = "microchip,mpfs-qspi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x0 0x37020100 0x0 0x100>;
+			interrupt-parent = <&plic>;
+			interrupts = <110>;
+			clocks = <&clkcfg CLK_QSPI>;
+			status = "okay";
+			sys_ctrl_flash: flash@0 { // icicle has: MT25QL01GBBB8ESF-0SIT
+				compatible = "jedec,spi-nor";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				spi-max-frequency = <20000000>;
+				spi-rx-bus-width = <1>;
+				reg = <0>;
+			};
+		};
+	};
+	syscontroller: syscontroller {
+		compatible = "microchip,mpfs-sys-controller";
+		mboxes = <&mbox 0>;
+		microchip,iap-flash = <&sys_ctrl_flash>;
 	};
 };
