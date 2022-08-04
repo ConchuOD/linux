@@ -2,7 +2,7 @@
 /*
  * Microchip PolarFire SoC (MPFS) system controller/mailbox controller driver
  *
- * Copyright (c) 2020 Microchip Corporation. All rights reserved.
+ * Copyright (c) 2020-2022 Microchip Corporation. All rights reserved.
  *
  * Author: Conor Dooley <conor.dooley@microchip.com>
  *
@@ -23,6 +23,8 @@
 #define MAILBOX_REG_OFFSET		0x800u
 #define MSS_SYS_MAILBOX_DATA_OFFSET	0u
 #define SCB_MASK_WIDTH			16u
+#define SCB_STATUS_SHIFT		16u
+#define SCB_STATUS_MASK			GENMASK(31, SCB_STATUS_SHIFT)
 
 /* SCBCTRL service control register */
 
@@ -130,7 +132,7 @@ static void mpfs_mbox_rx_data(struct mbox_chan *chan)
 	struct mpfs_mbox *mbox = (struct mpfs_mbox *)chan->con_priv;
 	struct mpfs_mss_response *response = mbox->response;
 	u16 num_words = ALIGN((response->resp_size), (4)) / 4U;
-	u32 i;
+	u32 i, status;
 
 	if (!response->resp_msg) {
 		dev_err(mbox->dev, "failed to assign memory for response %d\n", -ENOMEM);
@@ -144,6 +146,17 @@ static void mpfs_mbox_rx_data(struct mbox_chan *chan)
 					      + mbox->resp_offset + i * 0x4);
 		}
 	}
+
+	status = readl_relaxed(mbox->ctrl_base + SERVICES_SR_OFFSET);
+	if (status & 0x1)
+		response->resp_status = (status & SCB_STATUS_MASK) >> SCB_STATUS_SHIFT;
+	else
+		/*
+		 * We should *never* get an interrupt while the controller is
+		 * still in the busy state. If we do, something has gone badly
+		 * wrong...
+		 */
+		response->resp_status = 0xDEAD;
 
 	mbox_chan_received_data(chan, response);
 }
