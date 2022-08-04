@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/kref.h>
 #include <linux/module.h>
+#include <linux/spi/spi.h>
 #include <linux/interrupt.h>
 #include <linux/of_platform.h>
 #include <linux/mailbox_client.h>
@@ -23,6 +24,7 @@ struct mpfs_sys_controller {
 	struct mbox_client client;
 	struct mbox_chan *chan;
 	struct completion c;
+	struct spi_device *flash;
 	struct kref consumers;
 };
 
@@ -80,6 +82,12 @@ static void mpfs_sys_controller_put(void *data)
 	kref_put(&sys_controller->consumers, mpfs_sys_controller_delete);
 }
 
+struct spi_device *mpfs_sys_controller_get_flash(struct mpfs_sys_controller *mpfs_client)
+{
+	return mpfs_client->flash;
+}
+EXPORT_SYMBOL(mpfs_sys_controller_get_flash);
+
 static struct platform_device subdevs[] = {
 	{
 		.name		= "mpfs-rng",
@@ -95,6 +103,8 @@ static int mpfs_sys_controller_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct mpfs_sys_controller *sys_controller;
+	struct platform_device *flash_dev;
+	struct device_node *np;
 	int i, ret;
 
 	sys_controller = kzalloc(sizeof(*sys_controller), GFP_KERNEL);
@@ -113,6 +123,18 @@ static int mpfs_sys_controller_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	np = of_parse_phandle(dev->of_node, "microchip,iap-flash", 0);
+	if (!np)
+		goto no_flash;
+	flash_dev = of_find_device_by_node(np);
+	of_node_put(np);
+	if (!flash_dev)
+		goto no_flash;
+
+	sys_controller->flash = to_spi_device(&flash_dev->dev);
+	put_device(&flash_dev->dev);
+
+no_flash:
 	init_completion(&sys_controller->c);
 	kref_init(&sys_controller->consumers);
 
