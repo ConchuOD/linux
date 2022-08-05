@@ -61,15 +61,15 @@
 #define SCB_STATUS_MASK GENMASK_ULL(SCB_STATUS_POS + SCB_MASK_WIDTH, SCB_STATUS_POS)
 
 struct mpfs_mbox {
-	struct mbox_controller controller;
 	struct device *dev;
-	int irq;
 	void __iomem *ctrl_base;
 	void __iomem *mbox_base;
 	void __iomem *int_reg;
-	struct mbox_chan chans[1];
 	struct mpfs_mss_response *response;
+	struct mbox_controller controller;
+	struct mbox_chan chans[1];
 	u16 resp_offset;
+	int irq;
 };
 
 static bool mpfs_mbox_busy(struct mpfs_mbox *mbox)
