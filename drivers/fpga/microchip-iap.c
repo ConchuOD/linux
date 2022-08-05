@@ -5,23 +5,21 @@
  * Copyright (c) 2022 Microchip Corporation. All rights reserved.
  *
  * Author: Conor Dooley <conor.dooley@microchip.com>
- *
  */
-
-#include "linux/of_platform.h"
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/fpga/fpga-mgr.h>
 #include <soc/microchip/mpfs.h>
 
-#define DEFAULT_MBOX_OFFSET		0u
-#define DEFAULT_RESP_OFFSET		0u
+#define IAP_DEFAULT_MBOX_OFFSET		0u
+#define IAP_DEFAULT_RESP_OFFSET		0u
 
-#define FEATURE_CMD_OPCODE		0x05
-#define FEATURE_CMD_DATA_SIZE		0u
-#define FEATURE_RESP_SIZE		33u //its 9 on mpf! 33 on mpfs
-#define FEATURE_CMD_DATA		NULL
-#define FEATURE_IAP_MASK		(BIT(5) | BIT(1))
+#define IAP_FEATURE_CMD_OPCODE		0x05
+#define IAP_FEATURE_CMD_DATA_SIZE	0u
+#define MPFS_FEATURE_RESP_SIZE		33u
+#define MPF_FEATURE_RESP_SIZE		9u
+#define IAP_FEATURE_CMD_DATA		NULL
+#define IAP_FEATURE_ENABLED		BIT(5)
 
 #define IAP_VERIFY_CMD_OPCODE		0x22
 #define IAP_VERIFY_CMD_DATA_SIZE	0u
@@ -35,49 +33,86 @@
 
 #define IAP_IMAGE_INDEX			2u
 
+struct mpf_iap_config {
+	u8 feature_response_size;
+};
+
 struct mpf_iap_priv {
 	struct mpfs_sys_controller *sys_controller;
 	struct device *dev;
 	struct fpga_region *region;
+	struct mpf_iap_config *config;
 };
 
-//Query Security Service Mailbox - > do i need to check a load of things?
 static enum fpga_mgr_states mpf_iap_state(struct fpga_manager *mgr)
 {
 	struct mpf_iap_priv *priv = mgr->priv;
-	u32 response_msg[FEATURE_RESP_SIZE];
+	struct mpfs_mss_response *response;
+	struct mpfs_mss_msg *message;
+	u32 *response_msg;
 	int ret;
+	enum fpga_mgr_states rc = FPGA_MGR_STATE_WRITE_INIT_ERR;
 
-	struct mpfs_mss_response response = {
-		.resp_status = 0U,
-		.resp_msg = response_msg,
-		.resp_size = FEATURE_RESP_SIZE
-	};
+	response_msg = devm_kzalloc(priv->dev,
+				    priv->config->feature_response_size * sizeof(response_msg),
+				    GFP_KERNEL);
+	if (!response_msg)
+		return FPGA_MGR_STATE_WRITE_INIT_ERR;
 
-	struct mpfs_mss_msg msg = {
-		.cmd_opcode = FEATURE_CMD_OPCODE,
-		.cmd_data_size = FEATURE_CMD_DATA_SIZE,
-		.response = &response,
-		.cmd_data = FEATURE_CMD_DATA,
-		.mbox_offset = DEFAULT_MBOX_OFFSET,
-		.resp_offset = DEFAULT_RESP_OFFSET
-	};
+	response = devm_kzalloc(priv->dev, sizeof(struct mpfs_mss_response), GFP_KERNEL);
+	if (!response) {
+		devm_kfree(priv->dev, response_msg);
+		return FPGA_MGR_STATE_WRITE_INIT_ERR;
+	}
 
-	ret = mpfs_blocking_transaction(priv->sys_controller, &msg);
-	if (ret | response.resp_status)
-		return FPGA_MGR_STATE_UNKNOWN;
+	message = devm_kzalloc(priv->dev, sizeof(struct mpfs_mss_msg), GFP_KERNEL);
+	if (!response) {
+		devm_kfree(priv->dev, response_msg);
+		devm_kfree(priv->dev, response);
+		return FPGA_MGR_STATE_WRITE_INIT_ERR;
+	}
+
+	/*
+	 * To verify that IAP is possible, the "Query Security Service Request"
+	 * is performed. Bit 5 of byte 1 is "UL_IAP" & if it is set, IAP is not
+	 * possible.
+	 * This service has no command data & does not overload mbox_offset.
+	 * The size of the response varies between PolarFire & PolarFire SoC.
+	 */
+	response->resp_msg = response_msg;
+	response->resp_size = priv->config->feature_response_size;
+	message->cmd_opcode = IAP_FEATURE_CMD_OPCODE;
+	message->cmd_data_size = IAP_FEATURE_CMD_DATA_SIZE;
+	message->response = response;
+	message->cmd_data = IAP_FEATURE_CMD_DATA;
+	message->mbox_offset = IAP_DEFAULT_MBOX_OFFSET;
+	message->resp_offset = IAP_DEFAULT_RESP_OFFSET;
+
+	ret = mpfs_blocking_transaction(priv->sys_controller, message);
+	if (ret | response->resp_status) {
+		rc = FPGA_MGR_STATE_UNKNOWN;
+		goto out;
+	}
 	
-	//need to check byte1, bit 5 to see if iap is possible
-	if (!(response_msg[1] & FEATURE_IAP_MASK))
-		return FPGA_MGR_STATE_OPERATING;
+	if (!(response_msg[1] & IAP_FEATURE_ENABLED))
+		rc = FPGA_MGR_STATE_OPERATING;
 
-	return FPGA_MGR_STATE_WRITE_INIT_ERR; //iap is disabled
+out:
+	devm_kfree(priv->dev, response_msg);
+	devm_kfree(priv->dev, response);
+	devm_kfree(priv->dev, message);
+
+	return rc;
 }
 
 static int mpf_iap_write_init(struct fpga_manager *mgr, struct fpga_image_info *info,
 					 const char *buf, size_t count)
 {
-	//check that we can actually write to the spi?
+	/*
+	 * No parsing etc of the bitstream is required. The system controller
+	 * will do all of that itself - including verifying that the bitstream
+	 * is valid.
+	 */
 	return 0;
 }
 
@@ -94,53 +129,91 @@ static int mpf_iap_write(struct fpga_manager *mgr, const char *buf, size_t count
 static int mpf_iap_write_complete(struct fpga_manager *mgr, struct fpga_image_info *info)
 {
 	struct mpf_iap_priv *priv = mgr->priv;
-	int ret;
+	struct mpfs_mss_response *response;
+	struct mpfs_mss_msg *message;
+	u32 *response_msg;
+	int ret = 0;
 
-	u32 rc;
+	response_msg = devm_kzalloc(priv->dev,
+				    priv->config->feature_response_size * sizeof(response_msg),
+				    GFP_KERNEL);
+	if (!response_msg)
+		return -ENOMEM;
 
-	struct mpfs_mss_response response = {
-		.resp_status = 0U,
-		.resp_msg = &rc,
-		.resp_size = IAP_VERIFY_RESP_SIZE
-	};
+	response = devm_kzalloc(priv->dev, sizeof(struct mpfs_mss_response), GFP_KERNEL);
+	if (!response) {
+		devm_kfree(priv->dev, response_msg);
+		return -ENOMEM;
+	}
 
-	struct mpfs_mss_msg msg = {
-		.cmd_opcode = IAP_VERIFY_CMD_OPCODE,
-		.cmd_data_size = IAP_VERIFY_CMD_DATA_SIZE,
-		.response = &response,
-		.cmd_data = IAP_VERIFY_CMD_DATA,
-		.mbox_offset = IAP_IMAGE_INDEX,
-		.resp_offset = DEFAULT_RESP_OFFSET
-	};
+	message = devm_kzalloc(priv->dev, sizeof(struct mpfs_mss_msg), GFP_KERNEL);
+	if (!response) {
+		devm_kfree(priv->dev, response_msg);
+		devm_kfree(priv->dev, response);
+		return -ENOMEM;
+	}
+
+	/*
+	 * The system controller can verify that an image in the flash is valid.
+	 * Rather than duplicate the check in this driver, call the relevant
+	 * service from the system controller instead.
+	 * This service has no command data and no response data. It overloads
+	 * mbox_offset with the image index in the flash's SPI directory where
+	 * the bitstream is located.
+	 */
+	response->resp_msg = response_msg;
+	response->resp_size = IAP_VERIFY_RESP_SIZE;
+	message->cmd_opcode = IAP_VERIFY_CMD_OPCODE;
+	message->cmd_data_size = IAP_VERIFY_CMD_DATA_SIZE;
+	message->response = response;
+	message->cmd_data = IAP_VERIFY_CMD_DATA;
+	message->mbox_offset = IAP_IMAGE_INDEX;
+	message->resp_offset = IAP_DEFAULT_RESP_OFFSET;
 
 	pr_info("ran IAP_VERIFY_RESP_SIZE\n");
-	ret = mpfs_blocking_transaction(priv->sys_controller, &msg);
-	if (ret | response.resp_status)
-		return FPGA_MGR_STATE_WRITE_COMPLETE_ERR;
+	ret = mpfs_blocking_transaction(priv->sys_controller, message);
+	if (ret | response->resp_status) {
+		ret = ret ? ret : -EBADMSG;
+		goto out;
+	}
 
-	//then write it
-	struct mpfs_mss_response response2 = {
-		.resp_status = 0U,
-		.resp_msg = rc,
-		.resp_size = IAP_PROGRAM_RESP_SIZE
-	};
+	/*
+	 * If the validation has passed, initiate IAP.
+	 * This service has no command data and no response data. It overloads
+	 * mbox_offset with the image index in the flash's SPI directory where
+	 * the bitstream is located.
+	 * Once we attempt IAP either:
+	 * - it passes and the board reboots
+	 * - it fails and the board reboots to recover
+	 * - the system controller aborts and we exit "gracefully"
+	 * This function will never return 0.
+	 */
+	response->resp_msg = response_msg;
+	response->resp_size = IAP_PROGRAM_RESP_SIZE;
+	message->cmd_opcode = IAP_PROGRAM_CMD_OPCODE;
+	message->cmd_data_size = IAP_PROGRAM_CMD_DATA_SIZE;
+	message->response = response;
+	message->cmd_data = IAP_PROGRAM_CMD_DATA;
+	message->mbox_offset = IAP_IMAGE_INDEX;
+	message->resp_offset = IAP_DEFAULT_RESP_OFFSET;
 
-	struct mpfs_mss_msg msg2 = {
-		.cmd_opcode = IAP_PROGRAM_CMD_OPCODE,
-		.cmd_data_size = IAP_PROGRAM_CMD_DATA_SIZE,
-		.response = &response2,
-		.cmd_data = IAP_PROGRAM_CMD_DATA,
-		.mbox_offset = IAP_IMAGE_INDEX,
-		.resp_offset = DEFAULT_RESP_OFFSET
-	};
-
-	ret = mpfs_blocking_transaction(priv->sys_controller, &msg2);
-	if (ret | response.resp_status)
-		return FPGA_MGR_STATE_WRITE_COMPLETE_ERR;
 	pr_info("ran IAP_PROGRAM_CMD_OPCODE\n");
+	ret = mpfs_blocking_transaction(priv->sys_controller, message);
+	if (ret)
+		goto out;
 
-	//i think we get force rebooted here?
-	return FPGA_MGR_STATE_WRITE_COMPLETE_ERR;
+	/*
+	 * This return 0 is dead code. Either the IAP will fail, or it will pass
+	 * & the FPGA will be rebooted in which case mpfs_blocking_transaction()
+	 * will never return and Linux will die.
+	 */
+	return 0;
+
+out:
+	devm_kfree(priv->dev, response_msg);
+	devm_kfree(priv->dev, response);
+	devm_kfree(priv->dev, message);
+	return ret;
 }
 
 static const struct fpga_manager_ops mpf_iap_ops = {
@@ -150,7 +223,7 @@ static const struct fpga_manager_ops mpf_iap_ops = {
 	.write_complete = mpf_iap_write_complete,
 };
 
-static int test_it(struct device *dev)
+static int mpf_iap_run(struct device *dev)
 {
 	struct fpga_manager *mgr;
 	struct fpga_image_info *info;
@@ -162,7 +235,6 @@ static int test_it(struct device *dev)
 	info = fpga_image_info_alloc(dev);
 
 	info->firmware_name = devm_kstrdup(dev, "pf_bitstream.fw", GFP_KERNEL);
-	/* Get exclusive control of FPGA manager */
 	ret = fpga_mgr_lock(mgr);
 	if (ret) {
 		dev_err(dev, "couldnt lock the manager\n");
@@ -175,17 +247,29 @@ static int test_it(struct device *dev)
 		return ret;
 	}
 
-	/* Release the FPGA manager */
 	fpga_mgr_unlock(mgr);
 	fpga_mgr_put(mgr);
-
-	/* Deallocate the image info if you're done with it */
 	fpga_image_info_free(info);
 
-	printk("test complete\n");
+	dev_info(dev, "test complete\n");
 
 	return ret;
 }
+
+static const struct mpf_iap_config mpfs_config = {
+	.feature_response_size = MPFS_FEATURE_RESP_SIZE,
+};
+
+static const struct mpf_iap_config mpf_config = {
+	.feature_response_size = MPF_FEATURE_RESP_SIZE,
+};
+
+static const struct of_device_id mpf_iap_of_match[] = {
+	{ .compatible = "microchip,mpf-iap", .data = &mpf_config},
+	{ .compatible = "microchip,mpfs-iap", .data = &mpfs_config},
+	{}
+};
+MODULE_DEVICE_TABLE(of, mpf_iap_of_match);
 
 static int mpf_iap_probe(struct platform_device *pdev)
 {
@@ -194,6 +278,7 @@ static int mpf_iap_probe(struct platform_device *pdev)
 	struct mpf_iap_priv *priv;
 	struct fpga_manager *mgr;
 	struct device_node *np;
+	const struct of_device_id *of_id;
 	int ret;
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
@@ -207,6 +292,12 @@ static int mpf_iap_probe(struct platform_device *pdev)
 
 	priv->dev = dev;
 
+	of_id = of_match_node(mpf_iap_of_match, dev->of_node);
+	if (!of_id)
+		return -ENODEV;
+
+	priv->config = (struct mpf_iap_config *)of_id->data;
+
 	platform_set_drvdata(pdev, priv);
 
 	mgr = devm_fpga_mgr_register(dev, "Microchip MPF(S) IAP FPGA Manager",
@@ -216,21 +307,14 @@ static int mpf_iap_probe(struct platform_device *pdev)
 				     "Could not register FPGA manager.\n");
 
 	enum fpga_mgr_states state = mpf_iap_state(mgr);
-	ret = test_it(dev);
+	ret = mpf_iap_run(dev);
 	if (ret)
-		dev_err_probe(dev, ret, "foo");
+		dev_err_probe(dev, ret, "IAP failed");
 	
 	dev_info(dev, "Registered Microchip MPF(S) IAP FPGA Manager %u\n", state);
 
 	return 0;
 }
-
-static const struct of_device_id mpf_iap_of_match[] = {
-	{ .compatible = "microchip,mpf-iap" },
-	{ .compatible = "microchip,mpfs-iap" },
-	{}
-};
-MODULE_DEVICE_TABLE(of, mpf_iap_of_ids);
 
 static struct platform_driver mpf_iap_driver = {
 	.driver = {
