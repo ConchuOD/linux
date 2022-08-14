@@ -9,6 +9,7 @@
 #include <linux/const.h>
 
 #include <vdso/processor.h>
+#include <asm-generic/processor.h>
 
 #include <asm/ptrace.h>
 
