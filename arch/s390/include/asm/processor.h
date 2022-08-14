@@ -41,6 +41,7 @@
 #include <asm/fpu/types.h>
 #include <asm/fpu/internal.h>
 #include <asm/irqflags.h>
+#include <asm-generic/processor.h>
 
 typedef long (*sys_call_ptr_t)(struct pt_regs *regs);
 
@@ -80,7 +81,6 @@ void s390_adjust_jiffies(void);
 void s390_update_cpu_mhz(void);
 void cpu_detect_mhz_feature(void);
 
-extern const struct seq_operations cpuinfo_op;
 extern void execve_tail(void);
 extern void __bpon(void);
 unsigned long vdso_size(void);
