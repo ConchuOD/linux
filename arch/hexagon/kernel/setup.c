@@ -13,6 +13,7 @@
 #include <linux/seq_file.h>
 #include <linux/console.h>
 #include <linux/of_fdt.h>
+#include <linux/processor.h>
 #include <asm/io.h>
 #include <asm/sections.h>
 #include <asm/setup.h>

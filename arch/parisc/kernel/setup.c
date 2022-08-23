@@ -25,6 +25,7 @@
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/start_kernel.h>
+#include <linux/processor.h>
 
 #include <asm/cacheflush.h>
 #include <asm/processor.h>

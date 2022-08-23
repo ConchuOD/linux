@@ -12,6 +12,7 @@
 #include <linux/seq_file.h>
 #include <linux/string.h>
 #include <linux/of.h>
+#include <linux/processor.h>
 #include <asm/cpuinfo.h>
 
 struct cpuinfo cpuinfo;

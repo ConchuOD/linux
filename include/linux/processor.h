@@ -59,4 +59,6 @@ do {								\
 
 #endif
 
+extern const struct seq_operations cpuinfo_op;
+
 #endif /* _LINUX_PROCESSOR_H */

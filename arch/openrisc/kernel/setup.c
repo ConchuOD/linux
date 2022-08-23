@@ -33,6 +33,7 @@
 #include <linux/of_fdt.h>
 #include <linux/of.h>
 #include <linux/device.h>
+#include <linux/processor.h>
 
 #include <asm/sections.h>
 #include <asm/types.h>

@@ -17,6 +17,7 @@
 #include <linux/mm_types.h>
 #include <linux/delay.h>
 #include <linux/cpu.h>
+#include <linux/processor.h>
 
 #include <asm/diag.h>
 #include <asm/facility.h>

@@ -52,6 +52,7 @@
 #include <linux/cpufreq.h>
 #include <linux/kexec.h>
 #include <linux/crash_dump.h>
+#include <linux/processor.h>
 
 #include <asm/mca.h>
 #include <asm/meminit.h>

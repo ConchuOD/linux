@@ -29,6 +29,7 @@
 #include <linux/compiler.h>
 #include <linux/sort.h>
 #include <linux/psci.h>
+#include <linux/processor.h>
 
 #include <asm/unified.h>
 #include <asm/cp15.h>

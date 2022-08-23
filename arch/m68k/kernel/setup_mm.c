@@ -25,6 +25,7 @@
 #include <linux/module.h>
 #include <linux/nvram.h>
 #include <linux/initrd.h>
+#include <linux/processor.h>
 
 #include <asm/bootinfo.h>
 #include <asm/byteorder.h>

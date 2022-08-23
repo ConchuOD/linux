@@ -2,6 +2,7 @@
 #include <linux/seq_file.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/processor.h>
 #include <asm/machvec.h>
 #include <asm/processor.h>
 

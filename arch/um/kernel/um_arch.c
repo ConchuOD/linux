@@ -9,6 +9,7 @@
 #include <linux/ctype.h>
 #include <linux/module.h>
 #include <linux/panic_notifier.h>
+#include <linux/processor.h>
 #include <linux/seq_file.h>
 #include <linux/string.h>
 #include <linux/utsname.h>

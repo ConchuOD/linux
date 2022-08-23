@@ -4,8 +4,9 @@
  */
 
 #include <linux/init.h>
-#include <linux/seq_file.h>
 #include <linux/of.h>
+#include <linux/processor.h>
+#include <linux/seq_file.h>
 #include <asm/hwcap.h>
 #include <asm/smp.h>
 #include <asm/pgtable.h>

@@ -34,6 +34,7 @@
 #include <linux/of_platform.h>
 #include <linux/hugetlb.h>
 #include <linux/pgtable.h>
+#include <linux/processor.h>
 #include <asm/io.h>
 #include <asm/paca.h>
 #include <asm/processor.h>

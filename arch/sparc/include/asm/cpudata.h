@@ -7,8 +7,6 @@
 #include <linux/threads.h>
 #include <linux/percpu.h>
 
-extern const struct seq_operations cpuinfo_op;
-
 #endif /* !(__ASSEMBLY__) */
 
 #if defined(__sparc__) && defined(__arch64__)

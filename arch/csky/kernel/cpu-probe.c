@@ -5,6 +5,7 @@
 #include <linux/init.h>
 #include <linux/seq_file.h>
 #include <linux/memblock.h>
+#include <linux/processor.h>
 
 #include <abi/reg_ops.h>
 

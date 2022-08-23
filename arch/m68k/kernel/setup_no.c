@@ -33,6 +33,7 @@
 #include <linux/initrd.h>
 #include <linux/root_dev.h>
 #include <linux/rtc.h>
+#include <linux/processor.h>
 
 #include <asm/setup.h>
 #include <asm/bootinfo.h>

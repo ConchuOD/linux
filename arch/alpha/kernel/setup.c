@@ -46,6 +46,7 @@
 #include <asm/io.h>
 #include <linux/log2.h>
 #include <linux/export.h>
+#include <linux/processor.h>
 
 static int alpha_panic_event(struct notifier_block *, unsigned long, void *);
 static struct notifier_block alpha_panic_block = {

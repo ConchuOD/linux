@@ -20,6 +20,7 @@
 #include <linux/personality.h>
 #include <linux/preempt.h>
 #include <linux/printk.h>
+#include <linux/processor.h>
 #include <linux/seq_file.h>
 #include <linux/sched.h>
 #include <linux/smp.h>

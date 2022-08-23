@@ -12,6 +12,7 @@
 #include <linux/smp.h>
 #include <linux/threads.h>
 #include <linux/pgtable.h>
+#include <linux/processor.h>
 
 #include <asm/spitfire.h>
 #include <asm/oplib.h>

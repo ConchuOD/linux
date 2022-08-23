@@ -14,6 +14,7 @@
 #include <linux/seq_file.h>
 #include <linux/cpu.h>
 #include <linux/initrd.h>
+#include <linux/processor.h>
 
 #include <linux/bug.h>
 #include <asm/cpuinfo.h>
