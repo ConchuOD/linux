@@ -5,7 +5,6 @@ config ARCH_MICROCHIP
 
 config SOC_MICROCHIP_POLARFIRE
 	bool "Microchip SoC FPGAs"
-	select MCHP_CLK_MPFS
 	select SIFIVE_PLIC
 	help
 	  This enables support for Microchip SoC FPGAs.
