@@ -2,8 +2,8 @@
 
 config SOC_K210_SYSCTL
 	bool "Canaan Kendryte K210 SoC system controller"
-	depends on RISCV && SOC_CANAAN && OF
-	default SOC_CANAAN
+	depends on ARCH_CANAAN && OF
+	default ARCH_CANAAN
         select PM
         select MFD_SYSCON
 	help
