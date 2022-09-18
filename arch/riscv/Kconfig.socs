@@ -20,6 +20,9 @@ config SOC_SIFIVE
 	help
 	  This enables support for SiFive SoC platform hardware.
 
+config ARCH_STARFIVE
+	def_bool SOC_STARFIVE
+
 config SOC_STARFIVE
 	bool "StarFive SoCs"
 	select PINCTRL
