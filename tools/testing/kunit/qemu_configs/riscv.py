@@ -17,7 +17,7 @@ if not os.path.isfile(OPENSBI_FILE):
 
 QEMU_ARCH = QemuArchParams(linux_arch='riscv',
 			   kconfig='''
-CONFIG_SOC_VIRT=y
+CONFIG_ARCH_VIRT=y
 CONFIG_SERIAL_8250=y
 CONFIG_SERIAL_8250_CONSOLE=y
 CONFIG_SERIAL_OF_PLATFORM=y
