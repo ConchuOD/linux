@@ -433,9 +433,9 @@ config PINCTRL_ST
 
 config PINCTRL_STARFIVE
 	tristate "Pinctrl and GPIO driver for the StarFive JH7100 SoC"
-	depends on SOC_STARFIVE || COMPILE_TEST
+	depends on ARCH_STARFIVE || COMPILE_TEST
 	depends on OF
-	default SOC_STARFIVE
+	default ARCH_STARFIVE
 	select GENERIC_PINCTRL_GROUPS
 	select GENERIC_PINMUX_FUNCTIONS
 	select GENERIC_PINCONF
