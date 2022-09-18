@@ -48,6 +48,9 @@ config SOC_VIRT
 	help
 	  This enables support for QEMU Virt Machine.
 
+config ARCH_CANAAN
+	def_bool SOC_CANAAN
+
 config SOC_CANAAN
 	bool "Canaan Kendryte K210 SoC"
 	depends on !MMU
@@ -62,11 +65,11 @@ config SOC_CANAAN
 	help
 	  This enables support for Canaan Kendryte K210 SoC platform hardware.
 
-if SOC_CANAAN
+if ARCH_CANAAN
 
-config SOC_CANAAN_K210_DTB_BUILTIN
+config ARCH_CANAAN_K210_DTB_BUILTIN
 	bool "Builtin device tree for the Canaan Kendryte K210"
-	depends on SOC_CANAAN
+	depends on ARCH_CANAAN
 	default y
 	select OF
 	select BUILTIN_DTB
@@ -75,16 +78,16 @@ config SOC_CANAAN_K210_DTB_BUILTIN
 	  This option should be selected if no bootloader is being used.
 	  If unsure, say Y.
 
-config SOC_CANAAN_K210_DTB_SOURCE
+config ARCH_CANAAN_K210_DTB_SOURCE
 	string "Source file for the Canaan Kendryte K210 builtin DTB"
-	depends on SOC_CANAAN
-	depends on SOC_CANAAN_K210_DTB_BUILTIN
+	depends on ARCH_CANAAN
+	depends on ARCH_CANAAN_K210_DTB_BUILTIN
 	default "k210_generic"
 	help
 	  Base name (without suffix, relative to arch/riscv/boot/dts/canaan)
 	  for the DTS file that will be used to produce the DTB linked into the
 	  kernel.
 
-endif # SOC_CANAAN
+endif # ARCH_CANAAN
 
 endmenu # "SoC selection"
