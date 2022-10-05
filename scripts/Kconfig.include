@@ -31,6 +31,10 @@ cc-option = $(success,trap "rm -rf .tmp_$$" EXIT; mkdir .tmp_$$; $(CC) -Werror $
 # Return y if the linker supports <flag>, n otherwise
 ld-option = $(success,$(LD) -v $(1))
 
+# as-option
+# Return y if the assember supports <flag>, n otherwise
+as-option = $(success,trap "rm -rf .tmp_$$" | mkdir .tmp-$$; $(CC) -Werror $(1) -c -x assembler /dev/null -o "$$TMP")
+
 # $(as-instr,<instr>)
 # Return y if the assembler supports <instr>, n otherwise
 as-instr = $(success,printf "%b\n" "$(1)" | $(CC) $(CLANG_FLAGS) -c -x assembler -o /dev/null -)
