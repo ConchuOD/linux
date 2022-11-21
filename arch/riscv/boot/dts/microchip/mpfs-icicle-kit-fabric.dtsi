@@ -5,12 +5,18 @@
 	compatible = "microchip,mpfs-icicle-reference-rtlv2210", "microchip,mpfs-icicle-kit",
 		     "microchip,mpfs";
 
+	fabric_clk3: fabric-clk3 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <62500000>;
+	};
+
 	core_pwm0: pwm@40000000 {
 		compatible = "microchip,corepwm-rtl-v4";
-		reg = <0x0 0x40000000 0x0 0xF0>;
-		microchip,sync-update-mask = /bits/ 32 <0>;
+		reg = <0x0 0x41000000 0x0 0xF0>;
+		microchip,sync-update-mask = /bits/ 32 <0xff>;
 		#pwm-cells = <3>;
-		clocks = <&ccc_nw CLK_CCC_PLL0_OUT3>;
+		clocks = <&fabric_clk3>;
 		status = "disabled";
 	};
 
