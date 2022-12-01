@@ -3,6 +3,13 @@
 RISC-V Linux User ABI
 =====================
 
+Counter access
+--------------
+
+Access to the CYCLE, TIME and INSTRET counters, now controlled by the SBI PMU
+extension, were part of the ISA when the uABI was frozen & so remain accessible
+from userspace.
+
 ISA string ordering in /proc/cpuinfo
 ------------------------------------
 
