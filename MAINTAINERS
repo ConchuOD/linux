@@ -19885,10 +19885,11 @@ F:	arch/riscv/boot/dts/starfive/
 
 STARFIVE JH71X0 CLOCK DRIVERS
 M:	Emil Renner Berthing <kernel@esmil.dk>
+M:	Hal Feng <hal.feng@starfivetech.com>
 S:	Maintained
-F:	Documentation/devicetree/bindings/clock/starfive,jh7100-*.yaml
+F:	Documentation/devicetree/bindings/clock/starfive,jh71*.yaml
 F:	drivers/clk/starfive/clk-starfive-jh71*
-F:	include/dt-bindings/clock/starfive-jh7100*.h
+F:	include/dt-bindings/clock/starfive?jh71*.h
 
 STARFIVE JH7100 PINCTRL DRIVER
 M:	Emil Renner Berthing <kernel@esmil.dk>
@@ -19900,10 +19901,11 @@ F:	include/dt-bindings/pinctrl/pinctrl-starfive-jh7100.h
 
 STARFIVE JH71X0 RESET CONTROLLER DRIVERS
 M:	Emil Renner Berthing <kernel@esmil.dk>
+M:	Hal Feng <hal.feng@starfivetech.com>
 S:	Maintained
 F:	Documentation/devicetree/bindings/reset/starfive,jh7100-reset.yaml
 F:	drivers/reset/starfive/reset-starfive-jh71*
-F:	include/dt-bindings/reset/starfive-jh7100.h
+F:	include/dt-bindings/reset/starfive?jh71*.h
 
 STATIC BRANCH/CALL
 M:	Peter Zijlstra <peterz@infradead.org>
