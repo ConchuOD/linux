@@ -133,12 +133,9 @@ properties:
         - ptp_ref
 
   resets:
-    maxItems: 1
-    description:
-      MAC Reset signal.
-
-  reset-names:
-    const: stmmaceth
+    minItems: 1
+    maxItems: 3
+    additionalItems: true
 
   power-domains:
     maxItems: 1
