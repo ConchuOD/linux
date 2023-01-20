@@ -124,10 +124,7 @@ static void mchp_core_pwm_wait_for_sync_update(struct mchp_core_pwm_chip *mchp_c
 			return;
 
 		delay_us = DIV_ROUND_UP_ULL(remaining_ns, NSEC_PER_USEC);
-		if ((delay_us / 1000) > MAX_UDELAY_MS)
-			msleep(delay_us / 1000 + 1);
-		else
-			usleep_range(delay_us, delay_us * 2);
+		fsleep(delay_us);
 	}
 }
 
@@ -156,6 +153,7 @@ static void mchp_core_pwm_apply_duty(struct pwm_chip *chip, struct pwm_device *p
 	struct mchp_core_pwm_chip *mchp_core_pwm = to_mchp_core_pwm(chip);
 	u8 posedge, negedge;
 	u8 period_steps_val = PREG_TO_VAL(period_steps);
+	u8 first_edge = 0, second_edge = duty_steps;
 
 	/*
 	 * Setting posedge == negedge doesn't yield a constant output,
@@ -163,12 +161,15 @@ static void mchp_core_pwm_apply_duty(struct pwm_chip *chip, struct pwm_device *p
 	 * In that case set the unwanted edge to a value that never
 	 * triggers.
 	 */
+	if (duty_steps == 0)
+		first_edge = period_steps_val;
+
 	if (state->polarity == PWM_POLARITY_INVERSED) {
-		negedge = !duty_steps ? period_steps_val : 0u;
-		posedge = duty_steps;
+		negedge = first_edge;
+		posedge = second_edge;
 	} else {
-		posedge = !duty_steps ? period_steps_val : 0u;
-		negedge = duty_steps;
+		posedge = first_edge;
+		negedge = second_edge;
 	}
 
 	writel_relaxed(posedge, mchp_core_pwm->base + MCHPCOREPWM_POSEDGE(pwm->hwpwm));
@@ -184,7 +185,9 @@ static void mchp_core_pwm_calc_period(const struct pwm_state *state, unsigned lo
 	 * Calculate the period cycles and prescale values.
 	 * The registers are each 8 bits wide & multiplied to compute the period
 	 * using the formula:
-	 * (clock_period) * (prescale + 1) * (period_steps + 1)
+	 *           (prescale + 1) * (period_steps + 1)
+	 * period = -------------------------------------
+	 *                      clk_rate
 	 * so the maximum period that can be generated is 0x10000 times the
 	 * period of the input clock.
 	 * However, due to the design of the "hardware", it is not possible to
@@ -205,16 +208,28 @@ static void mchp_core_pwm_calc_period(const struct pwm_state *state, unsigned lo
 		return;
 	}
 
+	/*
+	 * The optimal value for prescale can be calculated as:
+	 *             period * clk_rate
+	 * prescale = ------------------- - 1
+	 *            NSEC_PER_SEC * 0xff
+	 *
+	 * Note that the 1 is conditionally subtracted below to prevent
+	 * underflow. 0 is a valid register value, as the hardware adds to the
+	 * value when calculating the period.
+	 *
+	 * period_steps is then computed using the result:
+	 *                      period * clk_rate
+	 * period_steps = ----------------------------- - 1
+	 *                NSEC_PER_SEC * (prescale + 1)
+	 */
 	*prescale = div_u64(tmp, MCHPCOREPWM_PERIOD_STEPS_MAX);
-	/* PREG_TO_VAL() can produce a value larger than UINT8_MAX */
-	*period_steps = div_u64(tmp, PREG_TO_VAL(*prescale)) - 1;
-}
+	if (*prescale)
+		*prescale -= 1;
 
-static inline void mchp_core_pwm_apply_period(struct mchp_core_pwm_chip *mchp_core_pwm,
-					      u8 prescale, u8 period_steps)
-{
-	writel_relaxed(prescale, mchp_core_pwm->base + MCHPCOREPWM_PRESCALE);
-	writel_relaxed(period_steps, mchp_core_pwm->base + MCHPCOREPWM_PERIOD);
+	*period_steps = div_u64(tmp, PREG_TO_VAL(*prescale) + 1) - 1;
+
+	printk("pre %u per %u\n", *prescale, *period_steps);
 }
 
 static int mchp_core_pwm_apply_locked(struct pwm_chip *chip, struct pwm_device *pwm,
@@ -278,7 +293,8 @@ static int mchp_core_pwm_apply_locked(struct pwm_chip *chip, struct pwm_device *
 		prescale = hw_prescale;
 		period_steps = hw_period_steps;
 	} else {
-		mchp_core_pwm_apply_period(mchp_core_pwm, prescale, period_steps);
+		writel_relaxed(prescale, mchp_core_pwm->base + MCHPCOREPWM_PRESCALE);
+		writel_relaxed(period_steps, mchp_core_pwm->base + MCHPCOREPWM_PERIOD);
 	}
 
 	duty_steps = mchp_core_pwm_calc_duty(state, clk_rate, prescale, period_steps);
@@ -378,7 +394,6 @@ static int mchp_core_pwm_probe(struct platform_device *pdev)
 {
 	struct mchp_core_pwm_chip *mchp_core_pwm;
 	struct resource *regs;
-	int ret;
 
 	mchp_core_pwm = devm_kzalloc(&pdev->dev, sizeof(*mchp_core_pwm), GFP_KERNEL);
 	if (!mchp_core_pwm)
@@ -407,14 +422,10 @@ static int mchp_core_pwm_probe(struct platform_device *pdev)
 	mchp_core_pwm->channel_enabled |=
 		readb_relaxed(mchp_core_pwm->base + MCHPCOREPWM_EN(1)) << 8;
 
-	ret = devm_pwmchip_add(&pdev->dev, &mchp_core_pwm->chip);
-	if (ret < 0)
-		return dev_err_probe(&pdev->dev, ret, "failed to add PWM chip\n");
-
 	writel_relaxed(1U, mchp_core_pwm->base + MCHPCOREPWM_SYNC_UPD);
 	mchp_core_pwm->update_timestamp = ktime_get();
 
-	return 0;
+	return devm_pwmchip_add(&pdev->dev, &mchp_core_pwm->chip);
 }
 
 static struct platform_driver mchp_core_pwm_driver = {
