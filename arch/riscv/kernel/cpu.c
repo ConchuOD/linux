@@ -118,7 +118,7 @@ static int riscv_cpuinfo_starting(unsigned int cpu)
 	ci->marchid = 0;
 	ci->mimpid = 0;
 #endif
-
+	printk("mimpid %lu\n", ci->mimpid);
 	return 0;
 }
 

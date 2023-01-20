@@ -21,6 +21,9 @@
 
 #include <linux/pinctrl/pinctrl.h>
 #include <linux/pinctrl/pinmux.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/pinctrl/pinconf.h>
+#include <linux/seq_file.h>
 
 #include <dt-bindings/pinctrl/starfive,jh7110-pinctrl.h>
 
