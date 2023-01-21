@@ -60,7 +60,7 @@
 			i-tlb-size = <40>;
 			mmu-type = "riscv,sv39";
 			next-level-cache = <&ccache>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa = "rv64imafdc_zba_zbb";
 			tlb-split;
 
 			cpu1_intc: interrupt-controller {
@@ -86,7 +86,7 @@
 			i-tlb-size = <40>;
 			mmu-type = "riscv,sv39";
 			next-level-cache = <&ccache>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa = "rv64imafdc_zba_zbb";
 			tlb-split;
 
 			cpu2_intc: interrupt-controller {
@@ -112,7 +112,7 @@
 			i-tlb-size = <40>;
 			mmu-type = "riscv,sv39";
 			next-level-cache = <&ccache>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa = "rv64imafdc_zba_zbb";
 			tlb-split;
 
 			cpu3_intc: interrupt-controller {
@@ -138,7 +138,7 @@
 			i-tlb-size = <40>;
 			mmu-type = "riscv,sv39";
 			next-level-cache = <&ccache>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa = "rv64imafdc_zba_zbb";
 			tlb-split;
 
 			cpu4_intc: interrupt-controller {
