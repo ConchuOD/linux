@@ -9,6 +9,8 @@
 #include <dt-bindings/leds/common.h>
 
 / {
+	#address-cells = <2>;
+	#size-cells = <2>;
 	model = "Microchip PolarFire-SoC Icicle Kit";
 	compatible = "microchip,mpfs-icicle-reference-rtlv2210", "microchip,mpfs-icicle-kit",
 		     "microchip,mpfs";
