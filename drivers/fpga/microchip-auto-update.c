@@ -210,6 +210,37 @@ static int mpfs_auto_update_verify_image(struct fw_upload *fw_uploader)
 
 	dev_info(priv->dev, "Verification of Upgrade Image passed!\n");
 
+//	/*
+//	 * If the validation has passed, initiate Auto Update.
+//	 * This service has no command data and no response data. It overloads
+//	 * mbox_offset with the image index in the flash's SPI directory where
+//	 * the bitstream is located.
+//	 * Once we attempt Auto Update either:
+//	 * - it passes and the board reboots
+//	 * - it fails and the board reboots to recover
+//	 * - the system controller aborts and we exit "gracefully".
+//	 *   "gracefully" since there is no interrupt produced & it just times
+//	 *   out.
+//	 */
+//	response->resp_msg = response_msg;
+//	response->resp_size = AUTO_UPDATE_PROGRAM_RESP_SIZE;
+//	message->cmd_opcode = AUTO_UPDATE_PROGRAM_CMD_OPCODE;
+//	message->cmd_data_size = AUTO_UPDATE_PROGRAM_CMD_DATA_SIZE;
+//	message->response = response;
+//	message->cmd_data = AUTO_UPDATE_PROGRAM_CMD_DATA;
+//	message->mbox_offset = 0; //field is ignored
+//	message->resp_offset = AUTO_UPDATE_DEFAULT_RESP_OFFSET;
+//
+//	dev_info(priv->dev, "Running Auto Update command\n");
+//	mpfs_blocking_transaction(priv->sys_controller, message);
+//
+//	/* *remove this for auto update*
+//	 * This return 0 is dead code. Either the Auto Update will fail, or it will pass
+//	 * & the FPGA will be rebooted in which case mpfs_blocking_transaction()
+//	 * will never return and Linux will die.
+//	 */
+//	return 0;
+//
 	devm_kfree(priv->dev, message);
 free_response:
 	devm_kfree(priv->dev, response);
