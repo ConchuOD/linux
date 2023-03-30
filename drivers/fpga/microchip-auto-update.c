@@ -266,6 +266,8 @@ static int mpfs_auto_update_set_image_address(struct mpfs_auto_update_priv *priv
 	 * the system controller where to find the actual bitstream. Since
 	 * this is spi-nor, we have to read the first eraseblock, erase that
 	 * portion of the flash, modify the data and then write it back.
+	 * There's no need to do this though if things are already the way they
+	 * should be, so check and save the write in that case.
 	 */
 	ret = mtd_read(priv->flash, AUTO_UPDATE_DIRECTORY_BASE, erase_size, &bytes_read,
 		       (u_char *)buffer);
@@ -275,6 +277,10 @@ static int mpfs_auto_update_set_image_address(struct mpfs_auto_update_priv *priv
 	if (bytes_read != erase_size)
 		return -EIO;
 
+	if ((*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY) == image_address) &&
+		!(*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY)))
+		return 0;
+
 	ret = mtd_erase(priv->flash, &erase);
 	if (ret)
 		return ret;
@@ -283,13 +289,7 @@ static int mpfs_auto_update_set_image_address(struct mpfs_auto_update_priv *priv
 	 * Populate the image address and then zero out the next directory so
 	 * that the system controller doesn't complain if in "Single Image"
 	 * mode.
-	 * There's no need to do this though if things are already the way they
-	 * should be, so check and save the write in that case.
 	 */
-	if ((*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY) == image_address) &&
-		!(*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY)))
-		return 0;
-
 	memcpy(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY, &image_address,
 	       AUTO_UPDATE_DIRECTORY_WIDTH);
 	memset(buffer + AUTO_UPDATE_BLANK_DIRECTORY, 0x0, AUTO_UPDATE_DIRECTORY_WIDTH);
