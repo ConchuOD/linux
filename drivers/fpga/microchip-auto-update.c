@@ -250,26 +250,13 @@ free_response_msg:
 	return ret;
 }
 
-static int mpfs_auto_update_write_bitstream(struct fw_upload *fw_uploader, const u8 *data,
-					    u32 offset, u32 size, u32 *written)
+static int mpfs_auto_update_set_image_address(struct mpfs_auto_update_priv *priv, char *buffer,
+					      u32 image_address, loff_t directory_address)
 {
-	struct mpfs_auto_update_priv *priv = fw_uploader->dd_handle;
 	struct erase_info erase;
-	char *buffer;
-	loff_t directory_address = AUTO_UPDATE_UPGRADE_DIRECTORY;
-	size_t bytes_written = 0, bytes_read = 0;
 	size_t erase_size = AUTO_UPDATE_DIRECTORY_SIZE;
-	u32 image_address;
+	size_t bytes_written = 0, bytes_read = 0;
 	int ret;
-
-	erase_size = round_up(erase_size, (u64)priv->flash->erasesize);
-
-	image_address = AUTO_UPDATE_BITSTREAM_BASE +
-		AUTO_UPDATE_UPGRADE_INDEX * priv->size_per_bitstream;
-
-	buffer = devm_kzalloc(priv->dev, erase_size, GFP_KERNEL);
-	if (!buffer)
-		return -ENOMEM;
 
 	erase.addr = AUTO_UPDATE_DIRECTORY_BASE;
 	erase.len = erase_size;
@@ -283,23 +270,28 @@ static int mpfs_auto_update_write_bitstream(struct fw_upload *fw_uploader, const
 	ret = mtd_read(priv->flash, AUTO_UPDATE_DIRECTORY_BASE, erase_size, &bytes_read,
 		       (u_char *)buffer);
 	if (ret)
-		goto out;
+		return ret;
 
-	if (bytes_read != erase_size) {
-		ret = -EIO;
-		goto out;
-	}
+	if (bytes_read != erase_size)
+		return -EIO;
 
 	ret = mtd_erase(priv->flash, &erase);
 	if (ret)
-		goto out;
+		return ret;
 
 	/*
 	 * Populate the image address and then zero out the next directory so
 	 * that the system controller doesn't complain if in "Single Image"
 	 * mode.
+	 * There's no need to do this though if things are already the way they
+	 * should be, so check and save the write in that case.
 	 */
-	memcpy(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY, &image_address, AUTO_UPDATE_DIRECTORY_WIDTH);
+	if ((*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY) == image_address) &&
+		!(*(u32 *)(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY)))
+		return 0;
+
+	memcpy(buffer + AUTO_UPDATE_UPGRADE_DIRECTORY, &image_address,
+	       AUTO_UPDATE_DIRECTORY_WIDTH);
 	memset(buffer + AUTO_UPDATE_BLANK_DIRECTORY, 0x0, AUTO_UPDATE_DIRECTORY_WIDTH);
 
 	dev_info(priv->dev, "Writing the image address (%x) to the flash directory (%llx)\n",
@@ -307,12 +299,38 @@ static int mpfs_auto_update_write_bitstream(struct fw_upload *fw_uploader, const
 
 	ret = mtd_write(priv->flash, 0x0, erase_size, &bytes_written, (u_char *)buffer);
 	if (ret)
-		goto out;
+		return ret;
 
-	if (bytes_written != erase_size) {
-		ret = -EIO;
+	if (bytes_written != erase_size)
+		return ret;
+
+	return 0;
+}
+
+static int mpfs_auto_update_write_bitstream(struct fw_upload *fw_uploader, const u8 *data,
+					    u32 offset, u32 size, u32 *written)
+{
+	struct mpfs_auto_update_priv *priv = fw_uploader->dd_handle;
+	struct erase_info erase;
+	char *buffer;
+	loff_t directory_address = AUTO_UPDATE_UPGRADE_DIRECTORY;
+	size_t erase_size = AUTO_UPDATE_DIRECTORY_SIZE;
+	size_t bytes_written = 0;
+	u32 image_address;
+	int ret;
+
+	erase_size = round_up(erase_size, (u64)priv->flash->erasesize);
+
+	image_address = AUTO_UPDATE_BITSTREAM_BASE +
+		AUTO_UPDATE_UPGRADE_INDEX * priv->size_per_bitstream;
+
+	buffer = devm_kzalloc(priv->dev, erase_size, GFP_KERNEL);
+	if (!buffer)
+		return -ENOMEM;
+
+	ret = mpfs_auto_update_set_image_address(priv, buffer, image_address, directory_address);
+	if (ret)
 		goto out;
-	}
 
 	/*
 	 * Now the .spi image itself can be written to the flash. Preservation
