@@ -440,12 +440,21 @@
 			status = "disabled";
 		};
 
+		irqmux: interrupt-controller@20002054 {
+			compatible = "microchip,mpfs-gpio-irq-mux";
+			reg = <0x0 0x20002054 0x0 0x4>;
+			interrupt-parent = <&plic>;
+			#interrupt-cells = <1>;
+			//interrupts = 13 -> 26, 27 -> 50, 51, 52, 53
+		};
+
 		gpio0: gpio@20120000 {
 			compatible = "microchip,mpfs-gpio";
 			reg = <0x0 0x20120000 0x0 0x1000>;
-			interrupt-parent = <&plic>;
+			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
+			//interrupts = 0 -> 31
 			clocks = <&clkcfg CLK_GPIO0>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -455,9 +464,10 @@
 		gpio1: gpio@20121000 {
 			compatible = "microchip,mpfs-gpio";
 			reg = <0x0 0x20121000 0x0 0x1000>;
-			interrupt-parent = <&plic>;
+			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
+			//interrupts = 32 -> 63
 			clocks = <&clkcfg CLK_GPIO1>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -467,9 +477,10 @@
 		gpio2: gpio@20122000 {
 			compatible = "microchip,mpfs-gpio";
 			reg = <0x0 0x20122000 0x0 0x1000>;
-			interrupt-parent = <&plic>;
+			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
+			//interrupts = 64 -> 95
 			clocks = <&clkcfg CLK_GPIO2>;
 			gpio-controller;
 			#gpio-cells = <2>;
