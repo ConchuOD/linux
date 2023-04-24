@@ -974,6 +974,7 @@ __irq_do_set_handler(struct irq_desc *desc, irq_flow_handler_t handle,
 		     int is_chained, const char *name)
 {
 	if (!handle) {
+		printk("no handler!\n");
 		handle = handle_bad_irq;
 	} else {
 		struct irq_data *irq_data = &desc->irq_data;

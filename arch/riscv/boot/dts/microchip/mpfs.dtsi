@@ -454,8 +454,9 @@
 				     <37>, <38>, <39>, <40>,
 				     <41>, <42>, <43>, <44>,
 				     <45>, <46>, <47>, <48>,
-				     <49>, <50>, <51>, <50>,
-				     <53>;
+				     <49>, <50>, <51>, <52>,
+//				     <53>;
+				     <96>;
 		};
 
 		gpio0: gpio@20120000 {
@@ -518,7 +519,7 @@
 			clocks = <&clkcfg CLK_GPIO2>;
 			gpio-controller;
 			#gpio-cells = <2>;
-			status = "okay";
+			status = "disabled";
 		};
 
 		rtc: rtc@20124000 {
@@ -544,8 +545,8 @@
 		mbox: mailbox@37020000 {
 			compatible = "microchip,mpfs-mailbox";
 			reg = <0x0 0x37020000 0x0 0x1000>, <0x0 0x2000318C 0x0 0x40>;
-			interrupt-parent = <&plic>;
-			interrupts = <96>;
+			interrupt-parent = <&irqmux>;
+			interrupts = <95>;
 			#mbox-cells = <1>;
 			status = "disabled";
 		};

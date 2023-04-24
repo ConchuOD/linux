@@ -437,16 +437,18 @@ int of_irq_get(struct device_node *dev, int index)
 	if (rc)
 		return rc;
 
+	printk("finding host\n");
 	domain = irq_find_host(oirq.np);
 	if (!domain) {
 		rc = -EPROBE_DEFER;
 		goto out;
 	}
 
+	printk("creating mapping\n");
 	rc = irq_create_of_mapping(&oirq);
 out:
 	of_node_put(oirq.np);
-
+	printk("getting out of here!\n");
 	return rc;
 }
 EXPORT_SYMBOL_GPL(of_irq_get);

@@ -178,6 +178,7 @@ static irqreturn_t mpfs_mbox_inbox_isr(int irq, void *data)
 	struct mbox_chan *chan = data;
 	struct mpfs_mbox *mbox = (struct mpfs_mbox *)chan->con_priv;
 
+	WARN_ON(1);
 	writel_relaxed(0, mbox->int_reg);
 
 	mpfs_mbox_rx_data(chan);
