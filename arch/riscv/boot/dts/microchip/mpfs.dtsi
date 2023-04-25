@@ -444,7 +444,9 @@
 			compatible = "microchip,mpfs-gpio-irq-mux";
 			reg = <0x0 0x20002054 0x0 0x4>;
 			interrupt-parent = <&plic>;
+			interrupt-controller;
 			#interrupt-cells = <1>;
+			status = "okay";
 			interrupts = <13>, <14>, <15>, <16>,
 				     <17>, <18>, <19>, <20>,
 				     <21>, <22>, <23>, <24>,

@@ -28,6 +28,7 @@ extern struct of_device_id __irqchip_of_table[];
 
 void __init irqchip_init(void)
 {
+	pr_warn("irqchip_init\n");
 	of_irq_init(__irqchip_of_table);
 	acpi_probe_device_table(irqchip);
 }
@@ -40,6 +41,7 @@ int platform_irqchip_probe(struct platform_device *pdev)
 
 	if (!irq_init_cb) {
 		of_node_put(par_np);
+		pr_warn("bad callback found\n");
 		return -EINVAL;
 	}
 
@@ -56,9 +58,10 @@ int platform_irqchip_probe(struct platform_device *pdev)
 	 */
 	if (par_np && !irq_find_matching_host(par_np, DOMAIN_BUS_ANY)) {
 		of_node_put(par_np);
+		pr_warn("deferring\n");
 		return -EPROBE_DEFER;
 	}
-
+	pr_warn("calling intcontroller's stuff\n");
 	return irq_init_cb(np, par_np);
 }
 EXPORT_SYMBOL_GPL(platform_irqchip_probe);
