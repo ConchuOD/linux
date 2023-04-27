@@ -852,20 +852,18 @@ int gpiochip_add_data_with_key(struct gpio_chip *gc, void *data,
 
 	machine_gpiochip_add(gc);
 
-	printk("trying to init irqchip\n");
 	ret = gpiochip_irqchip_init_valid_mask(gc);
 	if (ret)
 		goto err_remove_acpi_chip;
 
-	printk("its valid\n");
 	ret = gpiochip_irqchip_init_hw(gc);
 	if (ret)
 		goto err_remove_acpi_chip;
-	printk("adding irqchip\n");
+
 	ret = gpiochip_add_irqchip(gc, lock_key, request_key);
 	if (ret)
 		goto err_remove_irqchip_mask;
-	printk("gtg\n");
+
 	/*
 	 * By first adding the chardev, and then adding the device,
 	 * we get a device node entry in sysfs under

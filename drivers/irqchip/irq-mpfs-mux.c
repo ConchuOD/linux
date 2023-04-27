@@ -31,9 +31,6 @@
 #define MPFS_MUX_NUM_IRQS 41
 #define MPFS_MUX_GPIO0_2_MASK GENMASK(13, 0)
 #define MPFS_MUX_GPIO1_2_MASK GENMASK(31, 14)
-#define MPFS_MUX_GPIO0_IRQ_START 0u
-#define MPFS_MUX_GPIO1_IRQ_START 32u
-#define MPFS_MUX_GPIO2_IRQ_START 64u
 
 static const u32 mpfs_irq_mux_masks[3] = {
 	MPFS_MUX_GPIO0_2_MASK,
@@ -59,10 +56,24 @@ static struct irq_chip mpfs_irq_mux_irq_chip = {
 	.name = "MPFS irq mux",
 };
 
-static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv, u32 mux_config)
+static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv, int i)
 {
-	// this may not be complete for other gpios
-	return priv->irqchip_data->reg_mask & priv->mux_config;
+	u32 mux_config = priv->mux_config;
+
+	/*
+	 * Perhaps a hack, but we know that only gpio2 has all the bits set in
+	 * its mask & from the register description:
+	 * Setting these bits will disable the Pad interrupt, and enable
+	 * the fabric GPIO interrupt for bits 31:0. When the bit is set the Pad
+	 * interrupt will be ORED into the GPIO0 & GPIO1 non-direct interrupts.
+	 * When the bit is not set the Fabric interrupt is ORED into the GPIO2
+	 * non-direct interrupt. To prevent ORING then the interrupt should not
+	 * be enabled in the GPIO block
+	 */
+	if (priv->irqchip_data[i].reg_mask == GENMASK(31, 0)) //this is really sloppy, remove the hack
+		mux_config = ~mux_config;
+
+	return priv->irqchip_data[i].reg_mask & mux_config;
 }
 
 static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
@@ -71,16 +82,14 @@ static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
 	int i = irqchip_data->i; //TODO maybe a hack?
 	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
 						irqchip_data[i]);
-	unsigned long muxxed;
+	unsigned long muxxed_irqs;
 	int pos;
-
-
-	muxxed = mpfs_irq_mux_get_muxxed_irqs(priv, MPFS_MUX_NUM_IRQS - i);
-	muxxed = 0xffffffff;
 
 	chained_irq_enter(irq_desc_get_chip(desc), desc);
 
-	for_each_set_bit(pos, &muxxed, 32)
+	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, i);
+
+	for_each_set_bit(pos, &muxxed_irqs, 32)
 		generic_handle_domain_irq(irqchip_data->domain, pos);
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
@@ -89,10 +98,10 @@ static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
 static int mpfs_irq_mux_irq_map(struct irq_domain *h, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
-	struct mpfs_mux_irq_irqchip *data = h->host_data;
+	struct mpfs_irq_mux_irqchip *irqchip_data = h->host_data;
 
-	irq_set_chip_data(irq, data);
-	irq_set_chip_and_handler(irq, &mpfs_irq_mux_irq_chip, handle_level_irq); //prob wrong
+	irq_set_chip_data(irq, irqchip_data);
+	irq_set_chip_and_handler(irq, &mpfs_irq_mux_irq_chip, handle_level_irq); //may be wrong (handle_level_irq)
 	pr_info("mpfs-irq-mux: mapped %lu as %u\n", hwirq, irq);
 
 	return 0;
@@ -103,19 +112,27 @@ static int mpfs_irq_mux_irq_select(struct irq_domain *d, struct irq_fwspec *fwsp
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
 	bool is_it_us = false;
+	int i = irqchip_data->i; //TODO maybe a hack?
+	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
+						irqchip_data[i]);
 
-	/* Not for us */
 	if (fwspec->fwnode != d->fwnode) {
 		return false;
 	}
 
-	/* really this should be 38 + start */
+
+	// really this should be 38 + start (I think this comment assumes that
+	// direct mode would mean adding more hwirqs)
 	u32 start = (irqchip_data->i - 38) * 32;
 	u32 end = start + 32;
-	//TODO need to account here for the muxxing
+
 	if (fwspec->param[0] < end && fwspec->param[0] >= start) {
-		is_it_us = true;
+		u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, i);
+
+		if(muxxed_irqs & fwspec->param[0])
+			is_it_us = true;
 	}
+
 	pr_info("mpfs-irq-mux: is it us? %u, %pa %u\n", is_it_us, d, irqchip_data->i);
 	return is_it_us;
 }
@@ -143,41 +160,48 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 {
 	struct mpfs_irq_mux *priv;
 	struct irq_domain *domain;
+	int i;
 
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
 	priv->reg = of_iomap(node, 0);
-	if (!priv->reg) {
-		return -ENODEV;
-	}
-	//TODO: add teardown code
+	if (!priv->reg)
+		return -ENODEV; //TODO: add teardown code
 
 	priv->mux_config = readl(priv->reg);
 
-	for (int i = 0; i < MPFS_MUX_NUM_IRQS; i++) {
+	for (i = 0; i < (MPFS_MUX_NUM_IRQS - 3); i++)
+		;
+
+	/*
+	 * Now the non-direct/muxxed domains can be set up
+	 */
+	for (; i < MPFS_MUX_NUM_IRQS; i++) {
 		priv->irqchip_data[i].i = i;
 
-		if (i < 38)
-			// this is only valid for muxed ones (so the last 3)
-			continue;
 		priv->irqchip_data[i].irq = irq_of_parse_and_map(node, i);
 		if (priv->irqchip_data[i].irq <= 0)
 			return -1; //TODO: add teardown code
-		domain = irq_domain_add_linear(node, 32, &mpfs_irq_mux_domain_ops, &priv->irqchip_data[i]);
+
+		domain = irq_domain_add_linear(node, 32, &mpfs_irq_mux_domain_ops,
+					       &priv->irqchip_data[i]);
 		if (!domain)
 			return -ENOMEM; //TODO: add teardown code
+
 		priv->irqchip_data[i].domain = domain;
 		priv->irqchip_data[i].reg_mask = mpfs_irq_mux_masks[i - 38];
 		priv->irqchip_data[i].offset = (i - 38) * 32;
+
 		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
 						 mpfs_irq_mux_irq_handler,
 						 &priv->irqchip_data[i]);
+
 		pr_info("mpfs-irq-mux: registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
 	}
 
-	pr_info("mpfs-irq-mux: registered\n");
+	pr_info("mpfs-irq-mux: registered with mux config %x\n", priv->mux_config);
 	return 0;
 }
 

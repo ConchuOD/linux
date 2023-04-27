@@ -208,6 +208,12 @@ static void mpfs_gpio_irq_handler(struct irq_desc *desc)
 
 	chained_irq_enter(irqchip, desc);
 
+	if (!mpfs_gpio->gc.irq.domain) {
+		pr_warn("null domain!!\n");
+		chained_irq_exit(irqchip, desc);
+		return;
+	}
+
 	status = readl(mpfs_gpio->base + MPFS_IRQ_REG);
 	for_each_set_bit(offset, &status, mpfs_gpio->gc.ngpio) {
 		mpfs_gpio_assign_bit(mpfs_gpio->base + MPFS_IRQ_REG, offset, 1);
