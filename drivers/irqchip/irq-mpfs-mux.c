@@ -57,18 +57,18 @@ struct mpfs_irq_mux {
 
 static struct irq_chip mpfs_irq_mux_irq_chip = {
 	.name = "MPFS irq mux",
-	.irq_ack = irq_chip_ack_parent,
 };
 
 static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv, u32 mux_config)
 {
+	// this may not be complete for other gpios
 	return priv->irqchip_data->reg_mask & priv->mux_config;
 }
 
 static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = irq_desc_get_handler_data(desc);
-	int i = irqchip_data->i; //maybe a hack?
+	int i = irqchip_data->i; //TODO maybe a hack?
 	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
 						irqchip_data[i]);
 	unsigned long muxxed;
@@ -76,15 +76,12 @@ static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
 
 
 	muxxed = mpfs_irq_mux_get_muxxed_irqs(priv, MPFS_MUX_NUM_IRQS - i);
+	muxxed = 0xffffffff;
 
 	chained_irq_enter(irq_desc_get_chip(desc), desc);
 
-	for_each_set_bit(pos, &muxxed, 32) {
-		pr_warn("set-bit: %u \n", pos);
+	for_each_set_bit(pos, &muxxed, 32)
 		generic_handle_domain_irq(irqchip_data->domain, pos);
-	}
-	generic_handle_domain_irq(irqchip_data->domain, pos);
-
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
 }
@@ -96,7 +93,7 @@ static int mpfs_irq_mux_irq_map(struct irq_domain *h, unsigned int irq,
 
 	irq_set_chip_data(irq, data);
 	irq_set_chip_and_handler(irq, &mpfs_irq_mux_irq_chip, handle_level_irq); //prob wrong
-	pr_warn("mapped %lu as %u\n", hwirq, irq);
+	pr_info("mpfs-irq-mux: mapped %lu as %u\n", hwirq, irq);
 
 	return 0;
 }
@@ -115,10 +112,11 @@ static int mpfs_irq_mux_irq_select(struct irq_domain *d, struct irq_fwspec *fwsp
 	/* really this should be 38 + start */
 	u32 start = (irqchip_data->i - 38) * 32;
 	u32 end = start + 32;
+	//TODO need to account here for the muxxing
 	if (fwspec->param[0] < end && fwspec->param[0] >= start) {
 		is_it_us = true;
 	}
-	pr_warn("is it us? %u, %pa %u\n", is_it_us, d, irqchip_data->i);
+	pr_info("mpfs-irq-mux: is it us? %u, %pa %u\n", is_it_us, d, irqchip_data->i);
 	return is_it_us;
 }
 
@@ -126,10 +124,11 @@ static int mpfs_irq_mux_irq_xlate(struct irq_domain *d, struct device_node *node
 			      const u32 *intspec, unsigned int intsize,
 			      unsigned long *out_hwirq, unsigned int *out_type)
 {
-	*out_hwirq = intspec[0];
+	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
+	*out_hwirq = intspec[0] - irqchip_data->offset;
 	*out_type = IRQ_TYPE_LEVEL_HIGH;
 
-	pr_warn("translated %u\n", intspec[0]);
+	pr_info("mpfs-irq-mux: translated %u to %lu", intspec[0], *out_hwirq);
 
 	return 0;
 };
@@ -145,7 +144,6 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 	struct mpfs_irq_mux *priv;
 	struct irq_domain *domain;
 
-	pr_warn("mpfs-irq-mux: initialising\n");
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
@@ -172,11 +170,11 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 			return -ENOMEM; //TODO: add teardown code
 		priv->irqchip_data[i].domain = domain;
 		priv->irqchip_data[i].reg_mask = mpfs_irq_mux_masks[i - 38];
-		priv->irqchip_data[i].offset = ffs(mpfs_irq_mux_masks[i - 38]);
+		priv->irqchip_data[i].offset = (i - 38) * 32;
 		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
 						 mpfs_irq_mux_irq_handler,
 						 &priv->irqchip_data[i]);
-		pr_warn("mpfs-irq-mux: registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
+		pr_info("mpfs-irq-mux: registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
 	}
 
 	pr_info("mpfs-irq-mux: registered\n");

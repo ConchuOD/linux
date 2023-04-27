@@ -595,7 +595,6 @@ static int irq_domain_associate_locked(struct irq_domain *domain, unsigned int v
 	printk("calling map op for hwirq %lu\n", hwirq);
 	if (domain->ops->map) {
 		ret = domain->ops->map(domain, virq, hwirq);
-		printk("called map op\n");
 		if (ret != 0) {
 			/*
 			 * If map() returns -EPERM, this interrupt is protected
