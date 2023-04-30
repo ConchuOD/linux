@@ -91,6 +91,9 @@ properties:
       Notably, riscv,isa was defined prior to the creation of the
       Zicsr and Zifencei extensions and thus "i" implies
       "zicsr_zifencei".
+      For the sake of backwards compatibility, an unversioned
+      extension means that the hart/platform is capable of
+      supporting version 1.0.0 of the extension.
 
       While the isa strings in ISA specification are case
       insensitive, letters in the riscv,isa string must be all
