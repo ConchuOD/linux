@@ -293,6 +293,13 @@ void __init riscv_fill_hwcap(void)
 		}
 
 		/*
+		 * Linux requires Zicsr & Zifencei, so we may as well always
+		 * set them.
+		 */
+		set_bit(RISCV_ISA_EXT_ZIFENCEI, this_isa);
+		set_bit(RISCV_ISA_EXT_ZICSR, this_isa);
+
+		/*
 		 * All "okay" hart should have same isa. Set HWCAP based on
 		 * common capabilities of every "okay" hart, in case they don't
 		 * have.
