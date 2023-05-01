@@ -93,12 +93,39 @@ static bool riscv_isa_extension_check(int id)
 	return true;
 }
 
-void __init riscv_fill_hwcap(void)
+const struct riscv_isa_extension riscv_isa_extensions[] = {
+	RISCV_ISA_EXT_CFG(i, RISCV_ISA_EXT_i, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(m, RISCV_ISA_EXT_m, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(a, RISCV_ISA_EXT_a, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(f, RISCV_ISA_EXT_f, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(d, RISCV_ISA_EXT_d, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(q, RISCV_ISA_EXT_q, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(c, RISCV_ISA_EXT_c, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(b, RISCV_ISA_EXT_b, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(k, RISCV_ISA_EXT_k, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(j, RISCV_ISA_EXT_j, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(p, RISCV_ISA_EXT_p, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(v, RISCV_ISA_EXT_v, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(h, RISCV_ISA_EXT_h, "v1.0.0", false),
+	RISCV_ISA_EXT_CFG(zicbom, RISCV_ISA_EXT_ZICBOM, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(zicboz, RISCV_ISA_EXT_ZICBOZ, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(zicsr, RISCV_ISA_EXT_ZICSR, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(zifencei, RISCV_ISA_EXT_ZIFENCEI, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(zihintpause, RISCV_ISA_EXT_ZIHINTPAUSE, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(zbb, RISCV_ISA_EXT_ZBB, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(sscofpmf, RISCV_ISA_EXT_SSCOFPMF, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(sstc, RISCV_ISA_EXT_SSTC, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(svinval, RISCV_ISA_EXT_SVINVAL, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(svnapot, RISCV_ISA_EXT_SVNAPOT, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG(svpbmt, RISCV_ISA_EXT_SVPBMT, "v1.0.0", true),
+	RISCV_ISA_EXT_CFG("", RISCV_ISA_EXT_MAX, "", false),
+};
+
+static void __init riscv_fill_hwcap_isa_string(void)
 {
 	struct device_node *node;
 	const char *isa;
-	char print_str[NUM_ALPHA_EXTS + 1];
-	int i, j, rc;
+	int rc;
 	unsigned long isa2hwcap[26] = {0};
 	unsigned int cpu;
 
@@ -109,13 +136,12 @@ void __init riscv_fill_hwcap(void)
 	isa2hwcap['d' - 'a'] = COMPAT_HWCAP_ISA_D;
 	isa2hwcap['c' - 'a'] = COMPAT_HWCAP_ISA_C;
 
-	elf_hwcap = 0;
-
-	bitmap_zero(riscv_isa, RISCV_ISA_EXT_MAX);
+	pr_info("Falling back to reading hwcap from deprecated riscv,isa\n");
 
 	for_each_possible_cpu(cpu) {
 		unsigned long this_hwcap = 0;
 		DECLARE_BITMAP(this_isa, RISCV_ISA_EXT_MAX);
+		bitmap_zero(this_isa, RISCV_ISA_EXT_MAX);
 
 		node = of_cpu_device_node_get(cpu);
 		if (!node) {
@@ -138,7 +164,6 @@ void __init riscv_fill_hwcap(void)
 		 */
 		isa += 4;
 
-		bitmap_zero(this_isa, RISCV_ISA_EXT_MAX);
 		while (*isa) {
 			const char *ext = isa++;
 			const char *ext_end = isa;
@@ -278,26 +303,77 @@ void __init riscv_fill_hwcap(void)
 					set_bit(nr, this_isa);
 				}
 			} else {
-				/* sorted alphabetically */
-				SET_ISA_EXT_MAP("sscofpmf", RISCV_ISA_EXT_SSCOFPMF);
-				SET_ISA_EXT_MAP("sstc", RISCV_ISA_EXT_SSTC);
-				SET_ISA_EXT_MAP("svinval", RISCV_ISA_EXT_SVINVAL);
-				SET_ISA_EXT_MAP("svnapot", RISCV_ISA_EXT_SVNAPOT);
-				SET_ISA_EXT_MAP("svpbmt", RISCV_ISA_EXT_SVPBMT);
-				SET_ISA_EXT_MAP("zbb", RISCV_ISA_EXT_ZBB);
-				SET_ISA_EXT_MAP("zicbom", RISCV_ISA_EXT_ZICBOM);
-				SET_ISA_EXT_MAP("zicboz", RISCV_ISA_EXT_ZICBOZ);
-				SET_ISA_EXT_MAP("zihintpause", RISCV_ISA_EXT_ZIHINTPAUSE);
+				for (int i = 0; i < ARRAY_SIZE(riscv_isa_extensions); i++)
+					SET_ISA_EXT_MAP(riscv_isa_extensions[i].name, riscv_isa_extensions[i].key);
 			}
 #undef SET_ISA_EXT_MAP
 		}
 
-		/*
-		 * Linux requires Zicsr & Zifencei, so we may as well always
-		 * set them.
-		 */
-		set_bit(RISCV_ISA_EXT_ZIFENCEI, this_isa);
-		set_bit(RISCV_ISA_EXT_ZICSR, this_isa);
+	/*
+	 * Linux requires Zicsr & Zifencei, so we may as well always
+	 * set them.
+	 */
+	set_bit(RISCV_ISA_EXT_ZIFENCEI, this_isa);
+	set_bit(RISCV_ISA_EXT_ZICSR, this_isa);
+
+	/*
+	 * All "okay" hart should have same isa. Set HWCAP based on
+	 * common capabilities of every "okay" hart, in case they don't
+	 * have.
+	 */
+	if (elf_hwcap)
+		elf_hwcap &= this_hwcap;
+	else
+		elf_hwcap = this_hwcap;
+
+	if (bitmap_empty(riscv_isa, RISCV_ISA_EXT_MAX))
+		bitmap_copy(riscv_isa, this_isa, RISCV_ISA_EXT_MAX);
+	else
+		bitmap_and(riscv_isa, riscv_isa, this_isa, RISCV_ISA_EXT_MAX);
+	}
+}
+
+static bool __init riscv_fill_hwcap_new(void)
+{
+	struct device_node *node;
+	bool detected;
+	unsigned long isa2hwcap[26] = {0};
+	unsigned int cpu;
+
+	isa2hwcap['i' - 'a'] = COMPAT_HWCAP_ISA_I;
+	isa2hwcap['m' - 'a'] = COMPAT_HWCAP_ISA_M;
+	isa2hwcap['a' - 'a'] = COMPAT_HWCAP_ISA_A;
+	isa2hwcap['f' - 'a'] = COMPAT_HWCAP_ISA_F;
+	isa2hwcap['d' - 'a'] = COMPAT_HWCAP_ISA_D;
+	isa2hwcap['c' - 'a'] = COMPAT_HWCAP_ISA_C;
+
+	for_each_possible_cpu(cpu) {
+		unsigned long this_hwcap = 0;
+		DECLARE_BITMAP(this_isa, RISCV_ISA_EXT_MAX);
+
+		node = of_cpu_device_node_get(cpu);
+		if (!node) {
+			pr_warn("Unable to find cpu node\n");
+			continue;
+		}
+
+		for (int k = 0; k < ARRAY_SIZE(riscv_isa_extensions) - 1; k++) {
+			const char *tmp;
+
+			of_property_read_string(node, riscv_isa_extensions[k].prop_name, &tmp);
+			if (!tmp)
+				continue;
+
+			detected = true;
+
+			if (riscv_isa_extension_check(riscv_isa_extensions[k].key) &&
+			    !strcmp(riscv_isa_extensions[k].version, tmp)) {
+				if (!riscv_isa_extensions[k].multi_letter)
+					this_hwcap |= isa2hwcap[riscv_isa_extensions[k].key];
+
+				set_bit(riscv_isa_extensions[k].key, this_isa);
+			}
+		}
 
 		/*
 		 * All "okay" hart should have same isa. Set HWCAP based on
@@ -315,8 +391,29 @@ void __init riscv_fill_hwcap(void)
 			bitmap_and(riscv_isa, riscv_isa, this_isa, RISCV_ISA_EXT_MAX);
 	}
 
-	/* We don't support systems with F but without D, so mask those out
-	 * here. */
+	return detected;
+}
+
+void __init riscv_fill_hwcap(void)
+{
+	char print_str[NUM_ALPHA_EXTS + 1];
+	int i, j;
+
+	elf_hwcap = 0;
+
+	bitmap_zero(riscv_isa, RISCV_ISA_EXT_MAX);
+
+	/*
+	 * Since old dtbs must continue to work just as well/badly as they ever
+	 * did, fall back to the isa string if the new method doesn't work.
+	 */
+	if (!riscv_fill_hwcap_new())
+		riscv_fill_hwcap_isa_string();
+
+	/*
+	 * We don't support systems with F but without D, so mask those out
+	 * here.
+	 */
 	if ((elf_hwcap & COMPAT_HWCAP_ISA_F) && !(elf_hwcap & COMPAT_HWCAP_ISA_D)) {
 		pr_info("This kernel does not support systems with F but not D\n");
 		elf_hwcap &= ~COMPAT_HWCAP_ISA_F;

@@ -100,6 +100,12 @@ properties:
       lowercase.
     $ref: "/schemas/types.yaml#/definitions/string"
     pattern: ^rv(?:64|32)imaf?d?q?c?b?k?j?p?v?h?(?:[hsxz](?:[a-z])+)?(?:_[hsxz](?:[a-z])+)*$
+    deprecated: true
+
+  riscv,isa-base:
+    description: riscv,isa replacement
+    $ref: "/schemas/types.yaml#/definitions/string"
+    pattern: ^rv(?:64|32)ima$
 
   # RISC-V requires 'timebase-frequency' in /cpus, so disallow it here
   timebase-frequency: false
@@ -135,6 +141,23 @@ properties:
       u32 value representing CPU capacity (see ../cpu/cpu-capacity.txt) in
       DMIPS/MHz, relative to highest capacity-dmips-mhz
       in the system.
+
+  riscv,isa-extension-v:
+    description: foo
+    $ref: "/schemas/types.yaml#/definitions/string"
+    oneOf:
+      - const: v1.0.0
+        description: the original incarnation
+      - const: v1.0.1
+        description: backwards compat was broken here
+
+patternProperties:
+  "^riscv,isa-extension-*":
+    description: foo
+    $ref: "/schemas/types.yaml#/definitions/string"
+    enum:
+      - v1.0.0
+      - v1.0.1
 
 required:
   - riscv,isa
@@ -200,6 +223,27 @@ examples:
                 reg = <0>;
                 compatible = "riscv";
                 riscv,isa = "rv64imafdc";
+                mmu-type = "riscv,sv48";
+                interrupt-controller {
+                        #interrupt-cells = <1>;
+                        interrupt-controller;
+                        compatible = "riscv,cpu-intc";
+                };
+        };
+    };
+
+  - |
+    // Example 3: Extension specification
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        cpu@0 {
+                device_type = "cpu";
+                reg = <0>;
+                compatible = "riscv";
+                riscv,isa-base = "rv64ima";
+                riscv,isa-extension-i = "v1.0.0";
+                riscv,isa-extension-v = "v1.0.1";
                 mmu-type = "riscv,sv48";
                 interrupt-controller {
                         #interrupt-cells = <1>;
