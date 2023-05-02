@@ -109,7 +109,7 @@ static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *pr
 	return muxxed_irqs;
 }
 
-static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
+static void mpfs_irq_mux_nondirect_handler(struct irq_desc *desc)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = irq_desc_get_handler_data(desc);
 	int i = irqchip_data->i;
@@ -128,7 +128,7 @@ static void mpfs_irq_mux_irq_handler(struct irq_desc *desc)
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
 }
 
-static int mpfs_irq_mux_irq_map(struct irq_domain *h, unsigned int irq,
+static int mpfs_irq_mux_nondirect_map(struct irq_domain *h, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = h->host_data;
@@ -141,7 +141,7 @@ static int mpfs_irq_mux_irq_map(struct irq_domain *h, unsigned int irq,
 	return 0;
 }
 
-static int mpfs_irq_mux_irq_select(struct irq_domain *d, struct irq_fwspec *fwspec,
+static int mpfs_irq_mux_nondirect_select(struct irq_domain *d, struct irq_fwspec *fwspec,
 				 enum irq_domain_bus_token bus_token)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
@@ -171,23 +171,48 @@ static int mpfs_irq_mux_irq_select(struct irq_domain *d, struct irq_fwspec *fwsp
 	return is_it_us;
 }
 
-static int mpfs_irq_mux_irq_xlate(struct irq_domain *d, struct device_node *node,
-			      const u32 *intspec, unsigned int intsize,
-			      unsigned long *out_hwirq, unsigned int *out_type)
+static int mpfs_irq_mux_nondirect_translate(struct irq_domain *d, struct irq_fwspec *fwspec,
+				      unsigned long *out_hwirq, unsigned int *out_type)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
-	*out_hwirq = intspec[0] - irqchip_data->offset;
+	if (!is_of_node(fwspec->fwnode))
+		return -EINVAL;
+
+	*out_hwirq = fwspec->param[0] - irqchip_data->offset;
 	*out_type = IRQ_TYPE_LEVEL_HIGH;
 
-	pr_info("translated %u to %lu", intspec[0], *out_hwirq);
+	pr_info("translated %u to %lu", fwspec->param[0], *out_hwirq);
 
 	return 0;
-};
+}
+
+static int mpfs_irq_mux_nondirect_alloc(struct irq_domain *d, unsigned int virq,
+			          unsigned int nr_irqs, void *arg)
+{
+	int i, ret;
+	irq_hw_number_t hwirq;
+	unsigned int type;
+	struct irq_fwspec *fwspec = arg;
+
+	ret = mpfs_irq_mux_nondirect_translate(d, fwspec, &hwirq, &type);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < nr_irqs; i++) {
+		ret = mpfs_irq_mux_nondirect_map(d, virq + i, hwirq + i);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
 
 static const struct irq_domain_ops mpfs_irq_mux_domain_ops = {
-	.map		= mpfs_irq_mux_irq_map,
-	.xlate		= mpfs_irq_mux_irq_xlate,
-	.select		= mpfs_irq_mux_irq_select,
+	.map		= mpfs_irq_mux_nondirect_map,
+	.select		= mpfs_irq_mux_nondirect_select,
+	.translate	= mpfs_irq_mux_nondirect_translate,
+	.alloc		= mpfs_irq_mux_nondirect_alloc,
+	.free		= irq_domain_free_irqs_top,
 };
 
 static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node *parent)
@@ -229,7 +254,7 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 		priv->irqchip_data[i].offset = (i - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_IRQS_PER_GPIO;
 
 		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
-						 mpfs_irq_mux_irq_handler,
+						 mpfs_irq_mux_nondirect_handler,
 						 &priv->irqchip_data[i]);
 
 		pr_info("registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
