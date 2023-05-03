@@ -57,7 +57,7 @@ struct mpfs_irq_mux_irqchip {
 	struct irq_domain *domain;
 	int i;
 	int irq;
-	u32 reg_mask;
+	unsigned long reg_mask;
 	u8 offset;
 };
 
@@ -71,10 +71,10 @@ static struct irq_chip mpfs_irq_mux_irq_chip = {
 	.name = "MPFS GPIO Interrupt Mux",
 };
 
-static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv, int i)
+static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv,
+							 unsigned long mask)
 {
 	unsigned long mux_config = priv->mux_config;
-	unsigned long mask = priv->irqchip_data[i].reg_mask;
 	unsigned long muxxed_irqs;
 
 	/*
@@ -104,7 +104,7 @@ static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *pr
 	 * For GPIO controller 1, the first interrupt is not aligned with the
 	 * start of register, rather with the start of the mask.
 	 */
-	muxxed_irqs >>= ffs(mask);
+	muxxed_irqs >>= ffs(mask) - 1;
 
 	return muxxed_irqs;
 }
@@ -120,10 +120,12 @@ static void mpfs_irq_mux_nondirect_handler(struct irq_desc *desc)
 
 	chained_irq_enter(irq_desc_get_chip(desc), desc);
 
-	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, i);
+	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, priv->irqchip_data[i].reg_mask);
 
-	for_each_set_bit(pos, &muxxed_irqs, MPFS_IRQS_PER_GPIO)
+	for_each_set_bit(pos, &muxxed_irqs, MPFS_IRQS_PER_GPIO) {
+		printk(":)\n");
 		generic_handle_irq(irq_find_mapping(irqchip_data->domain, pos));
+	}
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
 }
@@ -154,20 +156,17 @@ static int mpfs_irq_mux_nondirect_select(struct irq_domain *d, struct irq_fwspec
 		return false;
 	}
 
-	// really this should be MPFS_MUX_NUM_DIRECT_IRQS + start (I think this comment assumes that
-	// direct mode would mean adding more hwirqs)
 	u32 start = (irqchip_data->i - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_IRQS_PER_GPIO;
 	u32 end = start + MPFS_IRQS_PER_GPIO;
 
 	if (fwspec->param[0] < end && fwspec->param[0] >= start) {
-		u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, i);
-		pr_debug("muxxed_irqs: %x\n", muxxed_irqs);
+		u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv,
+							       priv->irqchip_data[i].reg_mask);
 
-		if(muxxed_irqs & fwspec->param[0])
+		if(muxxed_irqs & BIT(fwspec->param[0] - start))
 			is_it_us = true;
 	}
 
-	pr_info("is it us? %u, %pa %u\n", is_it_us, d, irqchip_data->i);
 	return is_it_us;
 }
 
@@ -207,11 +206,97 @@ static int mpfs_irq_mux_nondirect_alloc(struct irq_domain *d, unsigned int virq,
 	return 0;
 }
 
-static const struct irq_domain_ops mpfs_irq_mux_domain_ops = {
-	.map		= mpfs_irq_mux_nondirect_map,
+static const struct irq_domain_ops mpfs_irq_mux_nondirect_domain_ops = {
 	.select		= mpfs_irq_mux_nondirect_select,
 	.translate	= mpfs_irq_mux_nondirect_translate,
 	.alloc		= mpfs_irq_mux_nondirect_alloc,
+	.free		= irq_domain_free_irqs_top,
+};
+
+static void mpfs_irq_mux_direct_handler(struct irq_desc *desc)
+{
+	struct mpfs_irq_mux_irqchip *irqchip_data = irq_desc_get_handler_data(desc);
+
+	chained_irq_enter(irq_desc_get_chip(desc), desc);
+
+	generic_handle_irq(irq_find_mapping(irqchip_data->domain, 0)); //TODO 0 -> ?
+
+	chained_irq_exit(irq_desc_get_chip(desc), desc);
+}
+
+static int mpfs_irq_mux_direct_select(struct irq_domain *d, struct irq_fwspec *fwspec,
+				 enum irq_domain_bus_token bus_token)
+{
+	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
+	bool is_it_us = false;
+	int i = irqchip_data->i;
+	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
+						irqchip_data[i]);
+
+	if (fwspec->fwnode != d->fwnode) {
+		return false;
+	}
+
+	u32 bank = fwspec->param[0] / 32; //warning, 64-bit division?
+	u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, mpfs_irq_mux_masks[bank]);
+	if (BIT(fwspec->param[0] % 32) & ~muxxed_irqs)
+		is_it_us = true;
+
+	return is_it_us;
+}
+
+static int mpfs_irq_mux_direct_translate(struct irq_domain *d, struct irq_fwspec *fwspec,
+				      unsigned long *out_hwirq, unsigned int *out_type)
+{
+	if (!is_of_node(fwspec->fwnode))
+		return -EINVAL;
+
+	*out_hwirq = 0;
+	*out_type = IRQ_TYPE_LEVEL_HIGH;
+
+	pr_info("xlated %u to %lu", fwspec->param[0], *out_hwirq);
+
+	return 0;
+}
+
+static int mpfs_irq_mux_direct_map(struct irq_domain *h, unsigned int irq,
+			      irq_hw_number_t hwirq)
+{
+	struct mpfs_irq_mux_irqchip *irqchip_data = h->host_data;
+
+	irq_set_chip_data(irq, irqchip_data);
+	irq_set_chip_and_handler(irq, &mpfs_irq_mux_irq_chip, handle_level_irq);
+
+	pr_info("mapped %lu (direct) as %u\n", hwirq, irq);
+
+	return 0;
+}
+
+static int mpfs_irq_mux_direct_alloc(struct irq_domain *d, unsigned int virq,
+			          unsigned int nr_irqs, void *arg)
+{
+	int ret;
+	irq_hw_number_t hwirq;
+	unsigned int type;
+	struct irq_fwspec *fwspec = arg;
+	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
+
+	ret = mpfs_irq_mux_direct_translate(d, fwspec, &hwirq, &type);
+	if (ret)
+		return ret;
+
+	irq_set_chip_data(virq, irqchip_data);
+	irq_set_chip_and_handler(virq, &mpfs_irq_mux_irq_chip, handle_level_irq);
+
+	pr_info("mapped %lu as %u\n", hwirq, virq);
+
+	return 0;
+}
+
+static const struct irq_domain_ops mpfs_irq_mux_direct_domain_ops = {
+	.select		= mpfs_irq_mux_direct_select,
+	.translate	= mpfs_irq_mux_direct_translate,
+	.alloc		= mpfs_irq_mux_direct_alloc,
 	.free		= irq_domain_free_irqs_top,
 };
 
@@ -231,8 +316,30 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 
 	priv->mux_config = readl(priv->reg);
 
-	for (i = 0; i < (MPFS_MUX_NUM_DIRECT_IRQS); i++)
+	for (i = 0; i < (MPFS_MUX_NUM_DIRECT_IRQS); i++) {
 		;
+//		priv->irqchip_data[i].i = i;
+//
+//		priv->irqchip_data[i].irq = irq_of_parse_and_map(node, i);
+//		if (priv->irqchip_data[i].irq <= 0)
+//			return -1; //TODO: add teardown code
+//
+//		domain = irq_domain_add_linear(node, 32,
+//					       &mpfs_irq_mux_direct_domain_ops,
+//					       &priv->irqchip_data[i]);
+//		if (!domain)
+//			return -ENOMEM; //TODO: add teardown code
+//
+//		priv->irqchip_data[i].domain = domain;
+//		priv->irqchip_data[i].reg_mask = GENMASK_ULL(37, 0);
+//		priv->irqchip_data[i].offset = 0;
+//
+//		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
+//						 mpfs_irq_mux_direct_handler,
+//						 &priv->irqchip_data[i]);
+//
+//		pr_info("registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
+	}
 
 	/*
 	 * Now the non-direct/muxxed domains can be set up
@@ -244,7 +351,8 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 		if (priv->irqchip_data[i].irq <= 0)
 			return -1; //TODO: add teardown code
 
-		domain = irq_domain_add_linear(node, MPFS_IRQS_PER_GPIO, &mpfs_irq_mux_domain_ops,
+		domain = irq_domain_add_linear(node, MPFS_IRQS_PER_GPIO,
+					       &mpfs_irq_mux_nondirect_domain_ops,
 					       &priv->irqchip_data[i]);
 		if (!domain)
 			return -ENOMEM; //TODO: add teardown code

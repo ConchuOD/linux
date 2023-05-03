@@ -456,9 +456,8 @@
 				     <37>, <38>, <39>, <40>,
 				     <41>, <42>, <43>, <44>,
 				     <45>, <46>, <47>, <48>,
-				     <49>, <50>, <51>, <52>,
-				     <53>;
-//				     <96>;
+				     <49>, <50>, <96>, <52>,
+				     <54>;
 		};
 
 		gpio0: gpio@20120000 {
@@ -467,7 +466,14 @@
 			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
-			//interrupts = 0 -> 31
+			interrupts = <0>, <1>, <2>, <3>,
+				     <4>, <5>, <6>, <7>,
+				     <8>, <9>, <10>, <11>,
+				     <12>, <13>, <14>, <15>,
+				     <16>, <17>, <18>, <19>,
+				     <20>, <21>, <22>, <23>,
+				     <24>, <25>, <26>, <27>,
+				     <28>, <29>, <30>, <31>;
 			clocks = <&clkcfg CLK_GPIO0>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -480,7 +486,14 @@
 			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
-			//interrupts = 32 -> 63
+			interrupts = <32>, <33>, <34>, <35>,
+				     <36>, <37>, <38>, <39>,
+				     <40>, <41>, <42>, <43>,
+				     <44>, <45>, <46>, <47>,
+				     <48>, <49>, <50>, <51>,
+				     <52>, <53>, <54>, <55>,
+				     <56>, <57>, <58>, <59>,
+				     <60>, <61>, <62>, <63>;
 			clocks = <&clkcfg CLK_GPIO1>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -490,7 +503,6 @@
 		gpio2: gpio@20122000 {
 			compatible = "microchip,mpfs-gpio";
 			reg = <0x0 0x20122000 0x0 0x1000>;
-//			interrupt-parent = <&plic>;
 			interrupt-parent = <&irqmux>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
@@ -502,26 +514,10 @@
 				     <84>, <85>, <86>, <87>,
 				     <88>, <89>, <90>, <91>,
 				     <92>, <93>, <94>, <95>;
-//			interrupts = <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>,
-//				     <53>, <53>;
 			clocks = <&clkcfg CLK_GPIO2>;
 			gpio-controller;
 			#gpio-cells = <2>;
-			status = "okay";
+			status = "disabled";
 		};
 
 		rtc: rtc@20124000 {
@@ -547,8 +543,8 @@
 		mbox: mailbox@37020000 {
 			compatible = "microchip,mpfs-mailbox";
 			reg = <0x0 0x37020000 0x0 0x1000>, <0x0 0x2000318C 0x0 0x40>;
-			interrupt-parent = <&plic>;
-			interrupts = <96>;
+			interrupt-parent = <&irqmux>;
+			interrupts = <31>;
 			#mbox-cells = <1>;
 			status = "disabled";
 		};
