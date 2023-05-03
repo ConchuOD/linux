@@ -122,25 +122,10 @@ static void mpfs_irq_mux_nondirect_handler(struct irq_desc *desc)
 
 	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, priv->irqchip_data[i].reg_mask);
 
-	for_each_set_bit(pos, &muxxed_irqs, MPFS_IRQS_PER_GPIO) {
-		printk(":)\n");
-		generic_handle_irq(irq_find_mapping(irqchip_data->domain, pos));
-	}
+	for_each_set_bit(pos, &muxxed_irqs, MPFS_IRQS_PER_GPIO)
+		generic_handle_domain_irq(irqchip_data->domain, pos);
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
-}
-
-static int mpfs_irq_mux_nondirect_map(struct irq_domain *h, unsigned int irq,
-			      irq_hw_number_t hwirq)
-{
-	struct mpfs_irq_mux_irqchip *irqchip_data = h->host_data;
-
-	irq_set_chip_data(irq, irqchip_data);
-	irq_set_chip_and_handler(irq, &mpfs_irq_mux_irq_chip, handle_level_irq);
-
-	pr_info("mapped %lu as %u\n", hwirq, irq);
-
-	return 0;
 }
 
 static int mpfs_irq_mux_nondirect_select(struct irq_domain *d, struct irq_fwspec *fwspec,
@@ -189,7 +174,7 @@ static int mpfs_irq_mux_nondirect_alloc(struct irq_domain *d, unsigned int virq,
 			          unsigned int nr_irqs, void *arg)
 {
 	int i, ret;
-	irq_hw_number_t hwirq;
+	irq_hw_number_t hwirq = 0;
 	unsigned int type;
 	struct irq_fwspec *fwspec = arg;
 
@@ -198,9 +183,9 @@ static int mpfs_irq_mux_nondirect_alloc(struct irq_domain *d, unsigned int virq,
 		return ret;
 
 	for (i = 0; i < nr_irqs; i++) {
-		ret = mpfs_irq_mux_nondirect_map(d, virq + i, hwirq + i);
-		if (ret)
-			return ret;
+		irq_domain_set_info(d, virq + i, hwirq + i, &mpfs_irq_mux_irq_chip,
+				    d->host_data, handle_level_irq, NULL, NULL);
+		pr_info("mapped %lu as %u\n", hwirq + i, virq + i);
 	}
 
 	return 0;
