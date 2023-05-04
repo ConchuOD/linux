@@ -59,13 +59,6 @@
 
 #include <linux/jump_label.h>
 
-struct riscv_isa_ext_data {
-	/* Name of the extension displayed to userspace via /proc/cpuinfo */
-	char uprop[RISCV_ISA_EXT_NAME_LEN_MAX];
-	/* The logical ISA extension ID */
-	unsigned int isa_ext_id;
-};
-
 struct riscv_isa_extension {
 	const u64 key;
 	const char *name;
@@ -83,6 +76,7 @@ struct riscv_isa_extension {
 }
 
 extern const struct riscv_isa_extension riscv_isa_extensions[];
+extern const size_t riscv_isa_extensions_count;
 
 unsigned long riscv_isa_extension_base(const unsigned long *isa_bitmap);
 

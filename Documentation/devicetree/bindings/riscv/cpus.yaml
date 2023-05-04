@@ -161,6 +161,10 @@ patternProperties:
 
 required:
   - riscv,isa
+  - riscv,isa-base
+  - riscv,isa-extension-i
+  - riscv,isa-extension-m
+  - riscv,isa-extension-a
   - interrupt-controller
 
 additionalProperties: true

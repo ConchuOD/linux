@@ -21,7 +21,11 @@
 			i-cache-sets = <128>;
 			i-cache-size = <16384>;
 			reg = <0>;
-			riscv,isa = "rv64imac";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extension-i = "v1.0.0";
+			riscv,isa-extension-m = "v1.0.0";
+			riscv,isa-extension-a = "v1.0.0";
+			riscv,isa-extension-c = "v1.0.0";
 			clocks = <&clkcfg CLK_CPU>;
 			status = "disabled";
 
@@ -47,7 +51,7 @@
 			i-tlb-size = <32>;
 			mmu-type = "riscv,sv39";
 			reg = <1>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa-base = "rv64i";
 			riscv,isa-extension-i = "v1.0.0";
 			riscv,isa-extension-m = "v1.0.0";
 			riscv,isa-extension-a = "v1.0.0";
@@ -82,7 +86,7 @@
 			i-tlb-size = <32>;
 			mmu-type = "riscv,sv39";
 			reg = <2>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa-base = "rv64i";
 			riscv,isa-extension-i = "v1.0.0";
 			riscv,isa-extension-m = "v1.0.0";
 			riscv,isa-extension-a = "v1.0.0";
@@ -117,7 +121,7 @@
 			i-tlb-size = <32>;
 			mmu-type = "riscv,sv39";
 			reg = <3>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa-base = "rv64i";
 			riscv,isa-extension-i = "v1.0.0";
 			riscv,isa-extension-m = "v1.0.0";
 			riscv,isa-extension-a = "v1.0.0";
@@ -152,7 +156,7 @@
 			i-tlb-size = <32>;
 			mmu-type = "riscv,sv39";
 			reg = <4>;
-			riscv,isa = "rv64imafdc";
+			riscv,isa-base = "rv64i";
 			riscv,isa-extension-i = "v1.0.0";
 			riscv,isa-extension-m = "v1.0.0";
 			riscv,isa-extension-a = "v1.0.0";
