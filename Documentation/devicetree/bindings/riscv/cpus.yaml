@@ -103,9 +103,12 @@ properties:
     deprecated: true
 
   riscv,isa-base:
-    description: riscv,isa replacement
+    description:
+      Identifies the base ISA supported by a hart.
     $ref: "/schemas/types.yaml#/definitions/string"
-    pattern: ^rv(?:64|32)ima$
+    enum:
+      - rv32i
+      - rv64i
 
   # RISC-V requires 'timebase-frequency' in /cpus, so disallow it here
   timebase-frequency: false
@@ -159,12 +162,13 @@ patternProperties:
       - v1.0.0
       - v1.0.1
 
+oneOf:
+  - required:
+      - riscv,isa-base
+  - required:
+      - riscv,isa
+
 required:
-  - riscv,isa
-  - riscv,isa-base
-  - riscv,isa-extension-i
-  - riscv,isa-extension-m
-  - riscv,isa-extension-a
   - interrupt-controller
 
 additionalProperties: true
@@ -245,8 +249,13 @@ examples:
                 device_type = "cpu";
                 reg = <0>;
                 compatible = "riscv";
-                riscv,isa-base = "rv64ima";
+                riscv,isa-base = "rv64i";
                 riscv,isa-extension-i = "v1.0.0";
+                riscv,isa-extension-m = "v1.0.0";
+                riscv,isa-extension-a = "v1.0.0";
+                riscv,isa-extension-f = "v1.0.0";
+                riscv,isa-extension-d = "v1.0.0";
+                riscv,isa-extension-c = "v2.0.0";
                 riscv,isa-extension-v = "v1.0.1";
                 mmu-type = "riscv,sv48";
                 interrupt-controller {
