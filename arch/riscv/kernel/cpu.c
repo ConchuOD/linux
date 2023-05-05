@@ -177,15 +177,8 @@ arch_initcall(riscv_cpuinfo_init);
 #ifdef CONFIG_PROC_FS
 static void print_isa_ext(struct seq_file *f)
 {
-	int i = 0, arr_sz;
 
-	arr_sz = riscv_isa_extensions_count - 1;
-
-	/* No extension support available */
-	if (arr_sz <= 0)
-		return;
-
-	for (i = 0; i < arr_sz; i++) {
+	for (int i = 0; i < riscv_isa_extensions_count - 1; i++) {
 		if (!__riscv_isa_extension_available(NULL, riscv_isa_extensions[i].key))
 			continue;
 		if (riscv_isa_extensions[i].multi_letter)
