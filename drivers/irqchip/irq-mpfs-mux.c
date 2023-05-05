@@ -19,11 +19,17 @@
 
 #define MPFS_MUX_NUM_IRQS 41
 #define MPFS_MUX_NUM_DIRECT_IRQS 38
-#define MPFS_IRQS_PER_GPIO 32
+#define MPFS_MAX_IRQS_PER_GPIO 32
+#define MPFS_NUM_IRQS_GPIO0 14
+#define MPFS_NUM_IRQS_GPIO1 24
 
 /*
- * There are 3 GPIO controllers on this SoC, each of which has 32 GPIOs.
- * All GPIOs are capable of generating interrupts, for a total of 96.
+ * There are 3 GPIO controllers on this SoC, of which:
+ * - GPIO controller 0 has 14 GPIOs
+ * - GPIO controller 1 has 24 GPIOs
+ * - GPIO controller 2 has 32 GPIOs
+ *
+ * All GPIOs are capable of generating interrupts, for a total of 70.
  * There are only 41 IRQs available however, so a configurable mux is used to
  * ensure all GPIOs can be used for interrupt generation.
  * 38 of the 41 interrupts are in what the documentation calls "direct mode",
@@ -32,7 +38,7 @@
  * a exclusive connection, one for each GPIO controller.
  * A register is used to set this configuration of this mux, depending on how
  * the "MSS Configurator" (FPGA configuration tool) has set things up.
- * This is done by the platforms firmware, so access from Linux is read-only.
+ * This is done by the platform's firmware, so access from Linux is read-only.
  *
  * Documentation also refers to GPIO controller 0 & 1 as "pad" GPIO controllers
  * and GPIO controller 2 as the "fabric" GPIO controller. Despite that wording,
@@ -40,9 +46,10 @@
  * the "pad" controller's interrupt will be put in "non-direct" mode. If
  * cleared, the "fabric" controller's.
  *
- * Bits 0 to 13 mux between GPIO controller 1's first 14 GPIOs and GPIO
- * controller 2's first 14. The remaining bits mux between the first 18 GPIOs
- * of controller 1 and the last 18 GPIOS of controller 2.
+ * Bits 0 to 13 mux between GPIO controller 1's 14 GPIOs and GPIO controller
+ * 2's first 14 GPIOs.
+ * The remaining bits mux between the first 18 GPIOs of controller 1 and the
+ * last 18 GPIOS of controller 2.
  *
  * That leaves 6 exclusive, or "direct", interrupts remaining. These are,
  * according to documentation, used by GPIO controller 1's lines 19 to 24.
@@ -55,7 +62,7 @@ static const unsigned long mpfs_irq_mux_masks[3] = {
 
 struct mpfs_irq_mux_irqchip {
 	struct irq_domain *domain;
-	int i;
+	int output_hwirq;
 	int irq;
 	unsigned long reg_mask;
 	u8 offset;
@@ -67,8 +74,15 @@ struct mpfs_irq_mux {
 	struct mpfs_irq_mux_irqchip irqchip_data[MPFS_MUX_NUM_IRQS];
 };
 
+/* Without NOPed out functions here, the gpio interrupt handler will panic */
+static void mpfs_irq_mux_irq_mask(struct irq_data *d) { }
+static void mpfs_irq_mux_irq_unmask(struct irq_data *d) { }
+
 static struct irq_chip mpfs_irq_mux_irq_chip = {
 	.name = "MPFS GPIO Interrupt Mux",
+	.irq_mask = mpfs_irq_mux_irq_mask,
+	.irq_unmask = mpfs_irq_mux_irq_unmask,
+	.flags = IRQCHIP_IMMUTABLE,
 };
 
 static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *priv,
@@ -112,17 +126,16 @@ static inline unsigned long mpfs_irq_mux_get_muxxed_irqs(struct mpfs_irq_mux *pr
 static void mpfs_irq_mux_nondirect_handler(struct irq_desc *desc)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = irq_desc_get_handler_data(desc);
-	int i = irqchip_data->i;
 	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
-						irqchip_data[i]);
+						irqchip_data[irqchip_data->output_hwirq]);
 	unsigned long muxxed_irqs;
 	int pos;
 
 	chained_irq_enter(irq_desc_get_chip(desc), desc);
 
-	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, priv->irqchip_data[i].reg_mask);
+	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, irqchip_data->reg_mask);
 
-	for_each_set_bit(pos, &muxxed_irqs, MPFS_IRQS_PER_GPIO)
+	for_each_set_bit(pos, &muxxed_irqs, MPFS_MAX_IRQS_PER_GPIO)
 		generic_handle_domain_irq(irqchip_data->domain, pos);
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
@@ -132,20 +145,19 @@ static int mpfs_irq_mux_nondirect_select(struct irq_domain *d, struct irq_fwspec
 				 enum irq_domain_bus_token bus_token)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
-	int i = irqchip_data->i;
 	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
-						irqchip_data[i]);
+						 irqchip_data[irqchip_data->output_hwirq]);
+	u32 start, end;
 
 	if (fwspec->fwnode != d->fwnode) {
 		return false;
 	}
 
-	u32 start = (irqchip_data->i - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_IRQS_PER_GPIO;
-	u32 end = start + MPFS_IRQS_PER_GPIO;
+	start = (irqchip_data->output_hwirq - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_MAX_IRQS_PER_GPIO;
+	end = start + MPFS_MAX_IRQS_PER_GPIO;
 
 	if (fwspec->param[0] < end && fwspec->param[0] >= start) {
-		u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv,
-							       priv->irqchip_data[i].reg_mask);
+		u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, irqchip_data->reg_mask);
 
 		if(muxxed_irqs & BIT(fwspec->param[0] - start))
 			return true;
@@ -158,13 +170,15 @@ static int mpfs_irq_mux_nondirect_translate(struct irq_domain *d, struct irq_fws
 				      unsigned long *out_hwirq, unsigned int *out_type)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
+
 	if (!is_of_node(fwspec->fwnode))
 		return -EINVAL;
 
 	*out_hwirq = fwspec->param[0] - irqchip_data->offset;
 	*out_type = IRQ_TYPE_LEVEL_HIGH;
 
-	pr_info("translated %u to %lu (offset %u)", fwspec->param[0], *out_hwirq, irqchip_data->offset);
+	pr_info("translated %u to %lu (offset %u)", fwspec->param[0], *out_hwirq,
+		irqchip_data->offset);
 
 	return 0;
 }
@@ -172,10 +186,10 @@ static int mpfs_irq_mux_nondirect_translate(struct irq_domain *d, struct irq_fws
 static int mpfs_irq_mux_nondirect_alloc(struct irq_domain *d, unsigned int virq,
 			          unsigned int nr_irqs, void *arg)
 {
-	int i;
+	struct irq_fwspec *fwspec = arg;
 	irq_hw_number_t hwirq = 0;
 	unsigned int type;
-	struct irq_fwspec *fwspec = arg;
+	int i;
 
 	mpfs_irq_mux_nondirect_translate(d, fwspec, &hwirq, &type);
 
@@ -201,40 +215,35 @@ static void mpfs_irq_mux_direct_handler(struct irq_desc *desc)
 
 	chained_irq_enter(irq_desc_get_chip(desc), desc);
 
-	printk("irqchip->i %u\n", irqchip_data->i);
-
-	int ret = generic_handle_domain_irq(irqchip_data->domain, 0); //TODO 0 -> ?
-	if (ret)
-		pr_warn("failed to handle!!\n");
-	else
-		pr_warn("handled!\n");
+	generic_handle_domain_irq(irqchip_data->domain, 0);
 
 	chained_irq_exit(irq_desc_get_chip(desc), desc);
 }
+
 
 static int mpfs_irq_mux_direct_select(struct irq_domain *d, struct irq_fwspec *fwspec,
 				 enum irq_domain_bus_token bus_token)
 {
 	struct mpfs_irq_mux_irqchip *irqchip_data = d->host_data;
-	int i = irqchip_data->i;
 	struct mpfs_irq_mux *priv = container_of(irqchip_data, struct mpfs_irq_mux,
-						irqchip_data[i]);
+						 irqchip_data[irqchip_data->output_hwirq]);
+	unsigned int bank, line, mask;
+	u32 muxxed_irqs;
 
 	if (fwspec->fwnode != d->fwnode) {
 		return false;
 	}
 
-	u32 bank = fwspec->param[0] / 32; //warning, 64-bit division?
-	u32 muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, mpfs_irq_mux_masks[bank]);
-	if (BIT(fwspec->param[0] % 32) & ~muxxed_irqs) {
-		printk("%u %u %u", i, ffs(mpfs_irq_mux_masks[bank]), fwspec->param[0]);
-		//if (i - ffs(mpfs_irq_mux_masks[bank]) == fwspec->param[0]) {
-		if (i == 14) {
-			printk("selected by bank %u@%u w/ muxxed_irqs %x\n",
-			       bank, irqchip_data->i, ~muxxed_irqs);
-			return true;
-		}
-	}
+	bank = fwspec->param[0] / 32;
+	line = fwspec->param[0] % 32;
+	mask = mpfs_irq_mux_masks[bank];
+	muxxed_irqs = mpfs_irq_mux_get_muxxed_irqs(priv, mask);
+
+	if (line & muxxed_irqs)
+		return false;
+
+	if (irqchip_data->output_hwirq - (ffs(mask) - 1) == line)
+		return true;
 
 	return false;
 }
@@ -294,13 +303,13 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 	priv->mux_config = readl(priv->reg);
 
 	for (i = 0; i < MPFS_MUX_NUM_DIRECT_IRQS; i++) {
-		priv->irqchip_data[i].i = i;
+		priv->irqchip_data[i].output_hwirq = i;
 
 		priv->irqchip_data[i].irq = irq_of_parse_and_map(node, i);
 		if (priv->irqchip_data[i].irq <= 0)
 			return -1; //TODO: add teardown code
 
-		domain = irq_domain_add_linear(node, 1,
+		domain = irq_domain_add_linear(NULL, 1,
 					       &mpfs_irq_mux_direct_domain_ops,
 					       &priv->irqchip_data[i]);
 		if (!domain)
@@ -311,21 +320,19 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
 						 mpfs_irq_mux_direct_handler,
 						 &priv->irqchip_data[i]);
-
-		pr_info("registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
 	}
 
 	/*
-	 * Now the non-direct/muxxed domains can be set up
+	 * The last 3 interrupts must be the non-direct/muxxed ones.
 	 */
 	for (; i < MPFS_MUX_NUM_IRQS; i++) {
-		priv->irqchip_data[i].i = i;
+		priv->irqchip_data[i].output_hwirq = i;
 
 		priv->irqchip_data[i].irq = irq_of_parse_and_map(node, i);
 		if (priv->irqchip_data[i].irq <= 0)
 			return -1; //TODO: add teardown code
 
-		domain = irq_domain_add_linear(node, MPFS_IRQS_PER_GPIO,
+		domain = irq_domain_add_linear(NULL, MPFS_MAX_IRQS_PER_GPIO,
 					       &mpfs_irq_mux_nondirect_domain_ops,
 					       &priv->irqchip_data[i]);
 		if (!domain)
@@ -333,13 +340,11 @@ static int __init mpfs_irq_mux_init(struct device_node *node, struct device_node
 
 		priv->irqchip_data[i].domain = domain;
 		priv->irqchip_data[i].reg_mask = mpfs_irq_mux_masks[i - MPFS_MUX_NUM_DIRECT_IRQS];
-		priv->irqchip_data[i].offset = (i - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_IRQS_PER_GPIO;
+		priv->irqchip_data[i].offset = (i - MPFS_MUX_NUM_DIRECT_IRQS) * MPFS_MAX_IRQS_PER_GPIO;
 
 		irq_set_chained_handler_and_data(priv->irqchip_data[i].irq,
 						 mpfs_irq_mux_nondirect_handler,
 						 &priv->irqchip_data[i]);
-
-		pr_info("registered domain %d:%u\n", i, priv->irqchip_data[i].irq);
 	}
 
 	pr_info("registered with mux config %x\n", priv->mux_config);
