@@ -243,9 +243,9 @@ static struct mpfs_msspll_out_hw_clock mpfs_msspll_out_clks[] = {
 		    MSSPLL_POSTDIV02_SHIFT, MSSPLL_POSTDIV_WIDTH, REG_MSSPLL_POSTDIV01_CR),
 	CLK_PLL_OUT(CLK_MSSPLL, "clk_msspll1", "clk_msspll_internal", 0,
 		    MSSPLL_POSTDIV13_SHIFT, MSSPLL_POSTDIV_WIDTH, REG_MSSPLL_POSTDIV01_CR),
-	CLK_PLL_OUT(CLK_MSSPLL, "clk_msspll2", "clk_msspll_internal", 0,
+	CLK_PLL_OUT(CLK_MSSPLL, "clk_msspll2", "clk_msspll_internal", CLK_IS_CRITICAL,
 		    MSSPLL_POSTDIV02_SHIFT, MSSPLL_POSTDIV_WIDTH, REG_MSSPLL_POSTDIV23_CR),
-	CLK_PLL_OUT(CLK_MSSPLL, "clk_msspll2", "clk_msspll_internal", 0,
+	CLK_PLL_OUT(CLK_MSSPLL, "clk_msspll3", "clk_msspll_internal", CLK_IS_CRITICAL,
 		    MSSPLL_POSTDIV13_SHIFT, MSSPLL_POSTDIV_WIDTH, REG_MSSPLL_POSTDIV23_CR),
 };
 
