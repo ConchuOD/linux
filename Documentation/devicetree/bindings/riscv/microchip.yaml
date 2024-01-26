@@ -24,6 +24,10 @@ properties:
               - microchip,mpfs-icicle-reference-rtlv2210
           - const: microchip,mpfs-icicle-kit
           - const: microchip,mpfs
+      - items:
+          - const: microchip,mpfs-video-kit
+          - const: microchip,mpfs-sev-kit
+          - const: microchip,mpfs
 
       - items:
           - enum:
@@ -31,7 +35,6 @@ properties:
               - aries,m100pfsevp
               - beagle,beaglev-fire
               - microchip,mpfs-sev-kit
-              - microchip,mpfs-video-kit
               - sundance,polarberry
           - const: microchip,mpfs
 
