@@ -327,6 +327,11 @@ static int mpfs_auto_update_write_bitstream(struct fw_upload *fw_uploader, const
 			dev_err(priv->dev, "failed to set image address in the SPI directory: %d\n", ret);
 			return ret;
 		}
+	} else {
+		if (size > AUTO_UPDATE_INFO_SIZE) {
+			dev_err(priv->dev, "bitstream info exceeds permitted size\n");
+			return -ENOSPC;
+		}
 	}
 
 	/*
