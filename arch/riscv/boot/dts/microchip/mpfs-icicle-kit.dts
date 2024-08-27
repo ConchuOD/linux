@@ -324,6 +324,11 @@
 
 &spi0 {
 	status = "okay";
+
+	not-real@0 {
+		compatible = "a,scope";
+		reg = <0>;
+	};
 };
 
 &spi1 {
