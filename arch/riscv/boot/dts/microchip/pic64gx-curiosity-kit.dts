@@ -13,7 +13,6 @@
  *  - Gigabit Ethernet
  *  - microSD-card slot
  *
- * https://www.microchip.com/en-us/development-tool/curiosity-pic64gx1000-kit-es
  */
 
 /dts-v1/;

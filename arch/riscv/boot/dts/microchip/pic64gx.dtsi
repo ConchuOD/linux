@@ -7,7 +7,6 @@
  * Author: Pierre-Henry Moussay <pierre-henry.moussay@microchip.com>
  *
  * PIC64GX is a series RISC-V multicore SoCs:
- * https://www.microchip.com/en-us/products/microprocessors/64-bit-mpus/pic64gx
  */
 
 /dts-v1/;
