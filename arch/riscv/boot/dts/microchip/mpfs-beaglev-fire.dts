@@ -278,7 +278,7 @@
 		};
 	};
 
-	mmc-slot@1 {
+	mmc@1 {
 		compatible = "mmc-spi-slot";
 		reg = <1>;
 		gpios = <&gpio2 31 1>;
