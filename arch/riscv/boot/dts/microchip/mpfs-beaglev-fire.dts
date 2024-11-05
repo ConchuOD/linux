@@ -94,6 +94,42 @@
 
 };
 
+&gpio0 {
+	ngpios=<14>;
+	gpio-line-names = "", "", "", "", "", "", "",
+			  "", "", "", "", "", "SD_CARD_CS", "USER_BUTTON";
+	status = "okay";
+
+	user-button-hog {
+		gpio-hog;
+		gpios = <13 13>;
+		input;
+		line-name = "USER_BUTTON";
+	};
+};
+
+&gpio1 {
+	ngpios=<24>;
+	gpio-line-names = "", "", "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "", "", "",
+			  "ADC_IRQn", "", "", "USB_OCn";
+	status = "okay";
+
+	adc-irqn-hog {
+		gpio-hog;
+		gpios = <20 20>;
+		input;
+		line-name = "ADC_IRQn";
+	};
+
+	usb-ocn-hog {
+		gpio-hog;
+		gpios = <23 23>;
+		input;
+		line-name = "USB_OCn";
+	};
+};
+
 &gpio2 {
 	gpio-line-names = "P8_PIN3_USER_LED_0", "P8_PIN4_USER_LED_1", "P8_PIN5_USER_LED_2",
 			  "P8_PIN6_USER_LED_3", "P8_PIN7_USER_LED_4", "P8_PIN8_USER_LED_5",
@@ -110,13 +146,6 @@
 		gpios = <30 30>;
 		output-high;
 		line-name = "VIO_ENABLE";
-	};
-
-	sd-det-hog {
-		gpio-hog;
-		gpios = <31 31>;
-		input;
-		line-name = "SD_DET";
 	};
 };
 
