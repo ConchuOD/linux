@@ -766,7 +766,7 @@ static int mchp_pcdma_probe(struct platform_device *pdev,
 	np = of_parse_phandle(pdev->dev.of_node, "pcdma-connected", 0);
 	if (IS_ERR(np)) {
 		dev_err(&pdev->dev, "could not find pcdma node\n");
-		return ret;
+		return PTR_ERR(np);
 	}
 
 	ret = of_address_to_resource(np, 0, &s2mres);
