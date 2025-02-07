@@ -479,12 +479,12 @@ static int mchp_corei2c_smbus_xfer(struct i2c_adapter *adap, u16 addr, unsigned 
 		}
 		break;
 	case I2C_SMBUS_BLOCK_DATA:
-		int len;
-
-		len = data->block[0];
 		if (read_write == I2C_SMBUS_WRITE) {
-			msgs[CORE_I2C_SMBUS_MSG_WR].len = len + 2;
-			for (int i = 0; i <= len; i++)
+			int data_len;
+
+			data_len = data->block[0];
+			msgs[CORE_I2C_SMBUS_MSG_WR].len = data_len + 2;
+			for (int i = 0; i <= data_len; i++)
 				msgs[CORE_I2C_SMBUS_MSG_WR].buf[i+1] = data->block[i];
 		} else {
 			msgs[CORE_I2C_SMBUS_MSG_RD].len = I2C_SMBUS_BLOCK_MAX + 1;
