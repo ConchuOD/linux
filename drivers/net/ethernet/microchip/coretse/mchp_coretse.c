@@ -27,6 +27,7 @@
 #include <linux/of_device.h>
 #include <linux/of_mdio.h>
 #include <linux/of_net.h>
+#include <linux/of_platform.h>
 #include <linux/ip.h>
 #include <linux/udp.h>
 #include <linux/tcp.h>

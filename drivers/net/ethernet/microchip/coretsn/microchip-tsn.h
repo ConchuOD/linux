@@ -23,6 +23,7 @@
 #include <linux/clk.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/of_platform.h>
 #include <asm/barrier.h>
 
 /* CoreTSN device, driver strings */
