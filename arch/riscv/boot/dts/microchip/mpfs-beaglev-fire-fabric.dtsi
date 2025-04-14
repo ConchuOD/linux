@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0 OR MIT)
 
+#include "dt-bindings/mailbox/miv-ihc.h"
+
 / {
 	fabric_clk3: fabric-clk3 {
 		compatible = "fixed-clock";
