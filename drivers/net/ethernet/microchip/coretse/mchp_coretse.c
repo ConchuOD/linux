@@ -152,7 +152,6 @@ static void coretse_mac_link_up(struct phylink_config *config,
 }
 
 static const struct phylink_mac_ops coretse_phylink_ops = {
-	.validate = phylink_generic_validate,
 	.mac_select_pcs = coretse_mac_select_pcs,
 	.mac_config = coretse_mac_config,
 	.mac_link_down = coretse_mac_link_down,
@@ -578,7 +577,7 @@ static netdev_tx_t mchp_coretse_start_xmit(struct sk_buff *skb,
 
 #ifdef CONFIG_CORE1588_HWTSTAMP
 static int mchp_core1588_get_ts_info(struct net_device *dev,
-				     struct ethtool_ts_info *info)
+				     struct kernel_ethtool_ts_info *info)
 {
 	struct coretse *bp = netdev_priv(dev);
 
@@ -1092,7 +1091,7 @@ err_disable_pclk:
 	return ret;
 }
 
-static int mchp_coretse_remove(struct platform_device *pdev)
+static void  mchp_coretse_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct coretse *bp = netdev_priv(ndev);
@@ -1114,8 +1113,6 @@ static int mchp_coretse_remove(struct platform_device *pdev)
 	clk_disable_unprepare(bp->dmaclk);
 
 	free_netdev(ndev);
-
-	return 0;
 }
 
 static const struct of_device_id mchp_coretse_of_match[] = {
