@@ -354,7 +354,7 @@ static void mchp_core1588_rx_hwtstamp(struct mchp_core1588_timer *timer, struct 
  * value, then store that result into the shhwtstamps structure which
  * is passed up the network stack using mchp_core1588_rx_hwtstamp function.
  */
-int mchp_core1588_ptp_rxstamp(struct mchp_core1588_timer *timer, struct sk_buff *skb)
+static int mchp_core1588_ptp_rxstamp(struct mchp_core1588_timer *timer, struct sk_buff *skb)
 {
 	int class, peer;
 
@@ -415,7 +415,7 @@ static void mchp_core1588_tx_hwtstamp(struct mchp_core1588_timer *timer, struct 
  * value, then store that result into the shhwtstamps structure which
  * is passed up the network stack using mchp_core1588_tx_hwtstamp function.
  */
-int mchp_core1588_ptp_txstamp(struct mchp_core1588_timer *timer, struct sk_buff *skb)
+static int mchp_core1588_ptp_txstamp(struct mchp_core1588_timer *timer, struct sk_buff *skb)
 {
 	int class = ptp_classify_raw(skb);
 	int peer;
@@ -514,7 +514,7 @@ static unsigned int mchp_core1588_get_tsu_rate(struct platform_device *pdev)
  * This function is getting called from the Ethernet driver
  * for now the GEM driver probe function
  */
-void mchp_core1588_init(struct platform_device *pdev, struct mchp_core1588_timer *timer)
+static void mchp_core1588_init(struct platform_device *pdev, struct mchp_core1588_timer *timer)
 {
 	unsigned int tsu_rate;
 	int ret;
@@ -539,7 +539,7 @@ void mchp_core1588_init(struct platform_device *pdev, struct mchp_core1588_timer
  * attempt to deconstruct registers to fill in the values, simply keep a copy
  * of the old settings around.
  */
-int mchp_core1588_get_hwtst(struct mchp_core1588_timer *timer, struct ifreq *rq)
+static int mchp_core1588_get_hwtst(struct mchp_core1588_timer *timer, struct ifreq *rq)
 {
 	struct hwtstamp_config *tstamp_config;
 
@@ -581,7 +581,7 @@ static void mchp_core1588_set_one_step_sync(struct mchp_core1588_timer *timer, b
  * changes. Otherwise, store the mode for future reference.
  *
  */
-int mchp_core1588_set_hwtst(struct mchp_core1588_timer *timer, struct ifreq *ifr, int cmd)
+static int mchp_core1588_set_hwtst(struct mchp_core1588_timer *timer, struct ifreq *ifr, int cmd)
 {
 	struct hwtstamp_config *tstamp_config;
 
@@ -682,7 +682,7 @@ static int mchp_core1588_timer_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int mchp_core1588_timer_remove(struct platform_device *pdev)
+static void mchp_core1588_timer_remove(struct platform_device *pdev)
 {
 	struct mchp_core1588_timer *timer = platform_get_drvdata(pdev);
 
@@ -691,8 +691,6 @@ static int mchp_core1588_timer_remove(struct platform_device *pdev)
 	mchp_core1588_clear_timer(timer);
 
 	dev_info(&pdev->dev, "ptp clock unregistered.\n");
-
-	return 0;
 }
 
 static const struct of_device_id mchp_core1588_timer_of_match[] = {
