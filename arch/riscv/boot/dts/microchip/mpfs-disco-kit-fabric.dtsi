@@ -21,7 +21,7 @@
 			reg = <0x0 0x40000000 0x0 0xF0>;
 			microchip,sync-update-mask = /bits/ 32 <0>;
 			#pwm-cells = <3>;
-			clocks = <&ccc_nw CLK_CCC_PLL0_OUT3>;
+			clocks = <&ccc_sw CLK_CCC_PLL0_OUT3>;
 			status = "disabled";
 		};
 
@@ -46,7 +46,7 @@
 			reg = <0x0 0x40000200 0x0 0x100>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			clocks = <&ccc_nw CLK_CCC_PLL0_OUT3>;
+			clocks = <&ccc_sw CLK_CCC_PLL0_OUT3>;
 			interrupt-parent = <&plic>;
 			interrupts = <122>;
 			clock-frequency = <100000>;
@@ -79,4 +79,17 @@
 		dmas = <&pdma 0>, <&pdma 1>, <&pdma 2>, <&pdma 3>;
 		dma-names = "dma-proxy0", "dma-proxy1", "dma-proxy2", "dma-proxy3";
 	};
+
+	refclk_ccc: cccrefclk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+	};
+};
+
+&ccc_sw {
+	clocks = <&refclk_ccc>, <&refclk_ccc>, <&refclk_ccc>, <&refclk_ccc>,
+		 <&refclk_ccc>, <&refclk_ccc>;
+	clock-names = "pll0_ref0", "pll0_ref1", "pll1_ref0", "pll1_ref1",
+		      "dll0_ref", "dll1_ref";
+	status = "okay";
 };
