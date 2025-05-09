@@ -839,16 +839,14 @@ static int mchp_tsn_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int mchp_tsn_remove(struct platform_device *pdev)
+static void mchp_tsn_remove(struct platform_device *pdev)
 {
 	struct mchp_tsn_dev *tsn_dev = NULL;
-	int ret = 0;
 
 	tsn_dev = platform_get_drvdata(pdev);
 	dev_dbg(&tsn_dev->pdev->dev, "Removing tsn_dev : %p\n", tsn_dev);
 	mchp_tsn_cdevice_exit(tsn_dev);
 
-	return ret;
 }
 
 static const struct of_device_id mchp_tsn_match[] = {
