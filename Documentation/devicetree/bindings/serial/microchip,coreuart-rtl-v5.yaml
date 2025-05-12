@@ -43,7 +43,7 @@ examples:
 
    serial@40000300 {
         compatible = "microchip,coreuart-rtl-v5";
-        reg = <0x0 0x40000300 0x0 0x100>;
+        reg = <0x40000300 0x100>;
         interrupt-parent = <&plic>;
         interrupts = <124>;
         clocks = <&ccc_nw CLK_CCC_PLL0_OUT3>;
