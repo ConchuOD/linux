@@ -72,10 +72,11 @@ static bool mchp_coreuart_tx_empty(struct uart_port *port)
 
 static void mchp_coreuart_start_tx(struct uart_port *port)
 {
-	struct circ_buf *xmit = &port->state->xmit;
+	struct tty_port *tport = &port->state->port;
 
-	while (!uart_circ_empty(xmit)) {
+	while (!kfifo_is_empty(&tport->xmit_fifo)) {
 		int timeout = MCHP_COREUART_TXRDY_TIMEOUT;
+		u8 c;
 
 		while (timeout--) {
 			if (readb(port->membase + MCHP_COREUART_STATUS)
@@ -88,7 +89,8 @@ static void mchp_coreuart_start_tx(struct uart_port *port)
 			break;
 		}
 
-		writeb(xmit->buf[xmit->tail], port->membase + MCHP_COREUART_TXDATA);
+		kfifo_out(&tport->xmit_fifo, (u8 *)&c, sizeof(c));
+		writeb(c, port->membase + MCHP_COREUART_TXDATA);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		port->icount.tx++;
 	}
