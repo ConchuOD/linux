@@ -64,7 +64,7 @@ static int mchp_coreuart_request_port(struct uart_port *port)
 }
 static void mchp_coreuart_release_port(struct uart_port *port) {}
 
-static bool mchp_coreuart_tx_empty(struct uart_port *port)
+static unsigned int mchp_coreuart_tx_empty(struct uart_port *port)
 {
 	return readb(port->membase + MCHP_COREUART_STATUS)
 		& MCHP_COREUART_STATUS_TXRDY_MASK;
@@ -76,6 +76,7 @@ static void mchp_coreuart_start_tx(struct uart_port *port)
 
 	while (!kfifo_is_empty(&tport->xmit_fifo)) {
 		int timeout = MCHP_COREUART_TXRDY_TIMEOUT;
+		int ret;
 		u8 c;
 
 		while (timeout--) {
@@ -89,9 +90,9 @@ static void mchp_coreuart_start_tx(struct uart_port *port)
 			break;
 		}
 
-		kfifo_out(&tport->xmit_fifo, (u8 *)&c, sizeof(c));
+		ret = kfifo_out(&tport->xmit_fifo, (u8 *)&c, sizeof(c));
+		WARN_ON(!ret);
 		writeb(c, port->membase + MCHP_COREUART_TXDATA);
-		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		port->icount.tx++;
 	}
 }
