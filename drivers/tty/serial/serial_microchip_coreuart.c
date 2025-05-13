@@ -289,14 +289,6 @@ static struct console mchp_coreuart_console = {
 	.data		= &mchp_core_uart_driver,
 };
 
-static int __init mchp_coreuart_console_init(void)
-{
-	register_console(&mchp_coreuart_console);
-	return 0;
-}
-
-console_initcall(mchp_coreuart_console_init);
-
 static void mchp_coreuart_early_write(struct console *con, const char *s, unsigned int n)
 {
 	struct earlycon_device *dev = con->data;
