@@ -751,31 +751,6 @@
 				};
 			};
 
-			white_balance: white-balance@60006000 {
-				compatible = "microchip,pic64gx-white-balance",
-						"microchip,white-balance-rtl-v1.1";
-				reg = <0x0 0x6000b000 0x0 0x1000>;
-				status = "disabled";
-
-				ports {
-					#address-cells = <1>;
-					#size-cells = <0>;
-
-					port@0 {
-						reg = <0>;
-						white_balance_in: endpoint {
-							remote-endpoint = <&mono_to_rgb_out>;
-						};
-					};
-					port@1 {
-						reg = <1>;
-						white_balance_out: endpoint {
-							remote-endpoint = <&image_enhancement_in>;
-						};
-					};
-				};
-			};
-
 			mono_to_rgb: demosaic@60008000 {
 				compatible = "microchip,pic64gx-bayer-interpolation",
 						"microchip,bayer-interpolation-rtl-v4.8";
@@ -801,7 +776,7 @@
 				};
 			};
 
-			mcsi2rx: csi2rx@6001000 {
+			mcsi2rx: csi2rx@60001000 {
 				compatible = "microchip,pic64gx-mipi-csi2-rx",
 						"microchip,mipi-csi2-rx-rtl-v0";
 				reg = <0x00 0x60001000 0x00 0x1000>;
@@ -821,6 +796,31 @@
 						reg = <1>;
 						csi2_out: endpoint {
 							remote-endpoint = <&mono_to_rgb_in>;
+						};
+					};
+				};
+			};
+
+			white_balance: white-balance@6000b000 {
+				compatible = "microchip,pic64gx-white-balance",
+						"microchip,white-balance-rtl-v1.1";
+				reg = <0x0 0x6000b000 0x0 0x1000>;
+				status = "disabled";
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						white_balance_in: endpoint {
+							remote-endpoint = <&mono_to_rgb_out>;
+						};
+					};
+					port@1 {
+						reg = <1>;
+						white_balance_out: endpoint {
+							remote-endpoint = <&image_enhancement_in>;
 						};
 					};
 				};
