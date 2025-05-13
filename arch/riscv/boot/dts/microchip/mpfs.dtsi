@@ -569,7 +569,7 @@
 		};
 
 		control_scb: syscon@37020000 {
-			compatible = "microchip,mpfs-control-scb", "syscon", "simple-mfd";
+			compatible = "microchip,mpfs-control-scb", "syscon";
 			reg = <0x0 0x37020000 0x0 0x100>;
 		};
 
