@@ -13,6 +13,8 @@
 #include <dt-bindings/clock/microchip,mpfs-clock.h>
 #include <soc/microchip/mpfs.h>
 #include <linux/clk/clk-regmap.h>
+#include <linux/clk.h>
+#include <linux/notifier.h>
 
 /* address offset of control registers */
 #define REG_MSSPLL_REF_CR	0x08u
@@ -247,6 +249,9 @@ static int mpfs_clk_register_msspll_outs(struct device *dev,
 #define CLK_AHB_OFFSET		2u
 #define CLK_RTCREF_OFFSET	3u
 
+#define POLARFIRE_CPU_LIMIT_HZ	625000000ul
+#define POLARFIRE_AXI_LIMIT_HZ	(POLARFIRE_CPU_LIMIT_HZ / 2)
+
 static struct mpfs_cfg_hw_clock mpfs_cfg_clks[] = {
 	CLK_CFG(CLK_CPU, "clk_cpu", "clk_msspll", 0, 2, mpfs_div_cpu_axi_table, 0,
 		REG_CLOCK_CONFIG_CR),
@@ -266,10 +271,67 @@ static struct mpfs_cfg_hw_clock mpfs_cfg_clks[] = {
 	}
 };
 
+static unsigned long mpfs_calc_axi_rate(unsigned long cpu_rate)
+{
+	/*
+	 * CPU and AXI are both derived from
+	 * two simple dividers on the same PLL output
+	 * CPU has a max value of 625 MHz
+	 * AXI has a max value of 312.5 MHz
+	 * AXI rate must also be the same or lower
+	 * than CPU rate
+	 *
+	 * In terms of dividers the possible values are
+	 * 1, 2, 4, 8
+	 *
+	 * So, AXI can only be same as CPU, half CPU, quarter CPU, or 1/8 CPU
+	 * For performance reasons, its best to keep AXI as high as possible.
+	 * So, if CPU is >312.5 MHz, then set AXI to half the rate, otherwise
+	 * use the CPU rate
+	 */
+	if (cpu_rate > POLARFIRE_AXI_LIMIT_HZ)
+		return cpu_rate / 2;
+	else
+		return cpu_rate;
+}
+
+static int mpfs_clk_cpu_notifier_cb(struct notifier_block *nb,
+				    unsigned long event, void *data)
+{
+	struct clk_notifier_data *cnd = data;
+	unsigned long new_axi_rate;
+	struct clk *axi_clk = clk_hw_get_clk(&mpfs_cfg_clks[CLK_AXI_OFFSET].sigh.hw, 0);
+
+	/*
+	 * If cpu rate going down, apply new axi rate before new cpu rate
+	 * If cpu rate going up, apply new axi rate *after* new cpu rate
+	 * Avoid a situation where - even briefly - axi rate and cpu rate
+	 * are outside design rule checks (DRCs).
+	 */
+	if ((event != PRE_RATE_CHANGE) && (event != POST_RATE_CHANGE))
+		return NOTIFY_OK;
+
+	if ((event == PRE_RATE_CHANGE) && (cnd->new_rate >= cnd->old_rate))
+		return NOTIFY_OK;
+
+	if ((event == POST_RATE_CHANGE) && (cnd->new_rate <= cnd->old_rate))
+		return NOTIFY_OK;
+
+	new_axi_rate = mpfs_calc_axi_rate(cnd->new_rate);
+	clk_set_rate(axi_clk, new_axi_rate);
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block mpfs_clk_cpu_nb = {
+	.notifier_call = mpfs_clk_cpu_notifier_cb,
+};
+
 static int mpfs_clk_register_cfgs(struct device *dev, struct mpfs_cfg_hw_clock *cfg_hws,
 				  unsigned int num_clks, struct mpfs_clock_data *data)
 {
 	unsigned int i, id;
+	struct clk *cpu_clk;
 	int ret;
 
 	for (i = 0; i < num_clks; i++) {
@@ -286,6 +348,14 @@ static int mpfs_clk_register_cfgs(struct device *dev, struct mpfs_cfg_hw_clock *
 		id = cfg_hw->id;
 		data->hw_data.hws[id] = &cfg_hw->sigh.hw;
 	}
+
+	cpu_clk = clk_hw_get_clk(&cfg_hws[CLK_CPU_OFFSET].sigh.hw, 0);
+	if (IS_ERR(cpu_clk))
+		return dev_err_probe(dev, ret, "Failed to get cpu clock");
+
+	ret = clk_notifier_register(cpu_clk, &mpfs_clk_cpu_nb);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to register cpu clock notifier");
 
 	return 0;
 }
