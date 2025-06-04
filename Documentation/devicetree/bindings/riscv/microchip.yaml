@@ -18,18 +18,28 @@ properties:
     const: '/'
   compatible:
     oneOf:
+      # Production Device Icicle Kits
+      - items:
+          - const: microchip,mpfs-icicle-prod-reference-rtl-v2507
+          - const: microchip,mpfs-icicle-kit-prod
+          - const: microchip,mpfs-icicle-kit
+          - const: microchip,mpfs-prod
+          - const: microchip,mpfs
+
+      # Engineering Sample Icicle Kits
       - items:
           - enum:
               - microchip,mpfs-icicle-reference-rtlv2203
               - microchip,mpfs-icicle-reference-rtlv2210
               - microchip,mpfs-icicle-reference-rtl-v2406
+              - microchip,mpfs-icicle-es-reference-rtl-v2507
           - const: microchip,mpfs-icicle-kit
           - const: microchip,mpfs
+
       - items:
           - const: microchip,mpfs-video-kit
           - const: microchip,mpfs-sev-kit
           - const: microchip,mpfs
-
       - items:
           - enum:
               - aldec,tysom-m-mpfs250t-rev2
