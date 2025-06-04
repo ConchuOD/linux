@@ -4,9 +4,6 @@
 #include "dt-bindings/mailbox/miv-ihc.h"
 
 / {
-	compatible = "microchip,mpfs-icicle-reference-rtlv2210", "microchip,mpfs-icicle-kit",
-		     "microchip,mpfs";
-
 	fabric-bus@40000000 {
 		compatible = "simple-bus";
 		#address-cells = <2>;
