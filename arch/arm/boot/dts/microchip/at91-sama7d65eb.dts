@@ -34,16 +34,6 @@
 		i2c2 = &i2c3;
 	};
 
-	clocks {
-		slow_xtal {
-			clock-frequency = <32768>;
-		};
-
-		main_xtal {
-			clock-frequency = <24000000>;
-		};
-	};
-
 	display {
 		/* LVDS WVGA Display panel Microchip AC69T88A */
 		compatible = "sitronix,st7262", "simple-panel";
@@ -511,6 +501,10 @@
 	};
 };
 
+&main_xtal {
+	clock-frequency = <24000000>;
+};
+
 &pioa {
 	pinctrl_adc_default: adc_default {
 		pinmux = <PIN_PC5__GPIO>;
@@ -721,6 +715,10 @@
 		pinmux = <PIN_PB31__GPIO>;
 		bias-disable;
 	};
+};
+
+&slow_xtal {
+	clock-frequency = <32768>;
 };
 
 &usb1 {
