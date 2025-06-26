@@ -507,7 +507,7 @@ static int mchp_corei2c_smbus_xfer(struct i2c_adapter *adap, u16 addr, unsigned 
 	}
 
 	ret = mchp_corei2c_xfer(&idev->adapter, msgs, num_msgs);
-	if (ret)
+	if (ret < 0)
 		return ret;
 
 	if (read_write == I2C_SMBUS_WRITE || size <= I2C_SMBUS_BYTE_DATA)
