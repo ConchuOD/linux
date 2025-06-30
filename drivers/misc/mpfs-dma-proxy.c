@@ -319,7 +319,7 @@ static int mpfs_dma_proxy_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int ret, i;
 
-	dma_proxy = devm_kmalloc(dev, sizeof(struct mpfs_dma_proxy), GFP_KERNEL);
+	dma_proxy = devm_kzalloc(dev, sizeof(struct mpfs_dma_proxy), GFP_KERNEL);
 	if (IS_ERR(dma_proxy))
 		return dev_err_probe(dev, PTR_ERR(dma_proxy), "Could not allocate proxy device\n");
 
