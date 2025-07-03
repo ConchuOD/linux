@@ -342,3 +342,19 @@
 	status = "okay";
 	dr_mode = "otg";
 };
+
+&wdt1 {
+	status = "okay";
+};
+
+&wdt2 {
+	status = "okay";
+};
+
+&wdt3 {
+	status = "okay";
+};
+
+&wdt4 {
+	status = "okay";
+};
