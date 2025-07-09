@@ -16,6 +16,14 @@
 	model = "BeagleBoard BeagleV-Fire";
 	compatible = "beagle,beaglev-fire", "microchip,mpfs";
 
+	soc {
+		dma-ranges = <0x14 0x0 0x0 0x80000000 0x0 0x4000000>,
+			     <0x14 0x4000000 0x0 0xc4000000 0x0 0x6000000>,
+			     <0x14 0xa000000 0x0 0x8a000000 0x0 0x8000000>,
+			     <0x14 0x12000000 0x14 0x12000000 0x0 0x10000000>,
+			     <0x14 0x22000000 0x10 0x22000000 0x0 0x5e000000>;
+	};
+
 	aliases {
 		serial0 = &mmuart0;
 		serial1 = &mmuart1;
@@ -34,10 +42,29 @@
 		timebase-frequency = <MTIMER_FREQ>;
 	};
 
-	ddrc_cache_lo: memory@80000000 {
+	kernel: memory@80000000 {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x40000000>;
-		status = "okay";
+		reg = <0x0 0x80000000 0x0 0x4000000>;
+	};
+
+	ddr_cached_low: memory@8a000000 {
+		device_type = "memory";
+		reg = <0x0 0x8a000000 0x0 0x8000000>;
+	};
+
+	ddr_non_cached_low: memory@c4000000 {
+		device_type = "memory";
+		reg = <0x0 0xc4000000 0x0 0x6000000>;
+	};
+
+	ddr_cached_high: memory@1022000000 {
+		device_type = "memory";
+		reg = <0x10 0x22000000 0x0 0x5e000000>;
+	};
+
+	ddr_non_cached_high: memory@1412000000 {
+		device_type = "memory";
+		reg = <0x14 0x12000000 0x0 0x10000000>;
 	};
 
 	reserved-memory {
@@ -93,7 +120,6 @@
 		regulator-min-microvolt = <1200000>;
 		regulator-max-microvolt = <1200000>;
 	};
-
 };
 
 &gpio0 {
@@ -182,6 +208,7 @@
 };
 
 &mac0 {
+	dma-noncoherent;
 	status = "okay";
 	phy-mode = "sgmii";
 	phy-handle = <&phy0>;
@@ -195,6 +222,7 @@
 };
 
 &mmc {
+	dma-noncoherent;
 	bus-width = <4>;
 	disable-wp;
 	cap-sd-highspeed;
@@ -339,6 +367,7 @@
 };
 
 &usb {
+	dma-noncoherent;
 	status = "okay";
 	dr_mode = "otg";
 };
