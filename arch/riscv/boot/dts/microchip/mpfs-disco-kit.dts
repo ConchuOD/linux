@@ -28,6 +28,7 @@
 	aliases {
 		ethernet0 = &mac0;
 		serial4 = &mmuart4;
+		serial5 = &coreuart0;
 	};
 
 	chosen {
@@ -189,6 +190,10 @@
 };
 
 &core_pwm0 {
+	status = "okay";
+};
+
+&coreuart0 {
 	status = "okay";
 };
 
