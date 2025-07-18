@@ -28,6 +28,7 @@
 	aliases {
 		ethernet0 = &mac0;
 		serial4 = &mmuart4;
+		serial5 = &coreuart0;
 	};
 
 	chosen {
@@ -192,6 +193,10 @@
 	status = "okay";
 };
 
+&coreuart0 {
+	status = "okay";
+};
+
 &fpgadma {
 	status = "okay";
 };
@@ -278,17 +283,5 @@
 };
 
 &wdt1 {
-	status = "okay";
-};
-
-&wdt2 {
-	status = "okay";
-};
-
-&wdt3 {
-	status = "okay";
-};
-
-&wdt4 {
 	status = "okay";
 };
