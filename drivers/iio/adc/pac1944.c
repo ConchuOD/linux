@@ -1680,7 +1680,7 @@ static int pac1944_reg_snapshot(struct pac1944_chip_info *info,
 
 static int pac1944_retrieve_data(struct pac1944_chip_info *info, u32 wait_time)
 {
-	int ret;
+	int ret = 0;
 
 	/*
 	 * Check if the minimal elapsed time has passed and if so,
