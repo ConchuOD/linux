@@ -28,6 +28,13 @@
 		cape_gpios_p8: gpio@41100000 {
 			compatible = "microchip,coregpio-rtl-v3";
 			reg = <0x0 0x41100000 0x0 0x1000>;
+			interrupt-parent = <&plic>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <126>, <127>, <128>, <129>,
+				     <130>, <131>, <132>, <133>,
+				     <134>, <135>, <136>, <137>,
+				     <138>, <139>, <140>, <141>;
 			clocks = <&fabric_clk3>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -51,6 +58,43 @@
 					  "P9_PIN25", "P9_PIN26", "P9_PIN27", "P9_PIN28",
 					  "P9_PIN29", "P9_PIN31", "P9_PIN41", "P9_PIN42";
 		};
+
+
+		//cape_gpios_p8: gpio@41100000 {
+		//	compatible = "microchip,core-gpio", "microchip,coregpio-rtl-v3";
+		//	reg = <0x0 0x41100000 0x0 0x1000>;
+		//	interrupt-parent = <&plic>;
+		//	interrupt-controller;
+		//	#interrupt-cells = <2>;
+		//	interrupts = <126>, <127>, <128>, <129>,
+		//			       <130>, <131>, <132>, <133>,
+		//			       <134>, <135>, <136>, <137>,
+		//			       <138>, <139>, <140>, <141>;
+		//	clocks = <&fabric_clk3>;
+		//	gpio-controller;
+		//	#gpio-cells = <2>;
+		//	ngpios = <16>;
+		//	status = "okay";
+		//	gpio-line-names = "P8_31", "P8_32", "P8_33", "P8_34",
+		//			  "P8_35", "P8_36", "P8_37", "P8_38",
+		//			  "P8_39", "P8_40", "P8_41", "P8_42",
+		//			  "P8_43", "P8_44", "P8_45", "P8_46";
+		//};
+
+		//cape_gpios_p9: gpio@41200000 {
+		//	compatible = "microchip,core-gpio", "microchip,coregpio-rtl-v3";
+		//	reg = <0x0 0x41200000 0x0 0x1000>;
+		//	clocks = <&fabric_clk3>;
+		//	gpio-controller;
+		//	#gpio-cells = <2>;
+		//	ngpios = <21>;
+		//	status = "okay";
+		//	gpio-line-names = "", "P9_12", "", "", "P9_15",
+		//			  "", "", "", "", "",
+		//			  "P9_23", "", "P9_25", "", "P9_27",
+		//			  "", "", "P9_30", "", "P9_41",
+		//			  "";
+		//};
 
 		hsi_gpios: gpio@44000000 {
 			compatible = "microchip,coregpio-rtl-v3";

@@ -129,6 +129,9 @@ static inline void plic_irq_toggle(const struct cpumask *mask,
 static void plic_irq_unmask(struct irq_data *d)
 {
 	struct plic_priv *priv = irq_data_get_irq_chip_data(d);
+	WARN_ON(!priv);
+	pr_err("%lu\n", PRIORITY_BASE + d->hwirq * PRIORITY_PER_ID);
+	pr_err("%lu\n", priv->nr_irqs);
 
 	writel(1, priv->regs + PRIORITY_BASE + d->hwirq * PRIORITY_PER_ID);
 }
@@ -142,7 +145,7 @@ static void plic_irq_mask(struct irq_data *d)
 
 static void plic_irq_enable(struct irq_data *d)
 {
-	plic_irq_toggle(irq_data_get_effective_affinity_mask(d), d, 1);
+//	plic_irq_toggle(irq_data_get_effective_affinity_mask(d), d, 1);
 	plic_irq_unmask(d);
 }
 

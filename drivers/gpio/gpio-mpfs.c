@@ -270,7 +270,11 @@ static int mpfs_gpio_probe(struct platform_device *pdev)
 
 			girq->parents[i] = ret;
 
-			irq_set_chip_data(ret, &mpfs_gpio->gc);
+			//ret = irq_set_chip_data(ret, &mpfs_gpio->gc);
+			//if (ret) {
+			//	pr_err("woe is you\n");
+			//	return ret;
+			//}
 			irq_set_handler(ret, handle_simple_irq);
 		}
 
