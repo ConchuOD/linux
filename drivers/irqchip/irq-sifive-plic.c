@@ -145,7 +145,7 @@ static void plic_irq_mask(struct irq_data *d)
 
 static void plic_irq_enable(struct irq_data *d)
 {
-//	plic_irq_toggle(irq_data_get_effective_affinity_mask(d), d, 1);
+	plic_irq_toggle(irq_data_get_effective_affinity_mask(d), d, 1);
 	plic_irq_unmask(d);
 }
 
