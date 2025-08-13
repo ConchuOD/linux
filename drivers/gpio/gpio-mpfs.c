@@ -116,7 +116,7 @@ static int mpfs_gpio_irq_set_type(struct irq_data *data, unsigned int type)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
+	int gpio_index = irqd_to_hwirq(data);
 	u32 interrupt_type;
 	pr_err("set index hwirq: %d %u\n", gpio_index, irqd_to_hwirq(data));
 
@@ -148,8 +148,7 @@ static void mpfs_gpio_irq_unmask(struct irq_data *data)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
-	pr_err("unm index hwirq: %d %u\n", gpio_index, irqd_to_hwirq(data));
+	int gpio_index = irqd_to_hwirq(data);
 
 	gpiochip_enable_irq(gc, gpio_index);
 	mpfs_gpio_direction_input(gc, gpio_index);
@@ -161,8 +160,7 @@ static void mpfs_gpio_irq_mask(struct irq_data *data)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
-	pr_err("m index hwirq: %d %u\n", gpio_index, irqd_to_hwirq(data));
+	int gpio_index = irqd_to_hwirq(data);
 
 	regmap_update_bits(mpfs_gpio->regs, MPFS_GPIO_CTRL(gpio_index),
 			   MPFS_GPIO_EN_INT, 0);
@@ -182,7 +180,7 @@ static void mpfs_gpio_irq_handler(struct irq_desc *desc)
 {
 	struct irq_chip *irqchip = irq_desc_get_chip(desc);
 	struct mpfs_gpio_chip *mpfs_gpio = irq_desc_get_handler_data(desc);
-	int gpio_index = irqd_to_hwirq(&desc->irq_data) % 32;
+	int gpio_index = irqd_to_hwirq(&desc->irq_data);
 	unsigned int status;
 	int i;
 	pr_err("%d\n", gpio_index);
@@ -276,19 +274,6 @@ static int mpfs_gpio_probe(struct platform_device *pdev)
 				return ret;
 
 			girq->parents[i] = ret;
-
-			//ret = devm_request_irq(&pdev->dev, ret, mpfs_gpio_irq_handler, 0, "foo", mpfs_gpio);
-			//if (ret) {
-			//	pr_err("blah %d\n", i);
-			//	return ret;
-			//}
-
-			//ret = irq_set_chip_data(ret, &mpfs_gpio->gc);
-			//if (ret) {
-			//	pr_err("woe is you\n");
-			//	return ret;
-			//}
-			//irq_set_handler(ret, handle_simple_irq);
 		}
 
 		girq->handler = handle_simple_irq;
