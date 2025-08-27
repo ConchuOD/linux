@@ -184,6 +184,7 @@ int dw_dphy_te_read(struct dw_dphy_rx *dphy, u32 addr);
 
 #if IS_ENABLED(CONFIG_DWC_MIPI_TC_DPHY_GEN3)
 u32 dw_dphy_if_read(struct dw_dphy_rx *dphy, u32 address);
+int dw_dphy_if_set_idelay(struct dw_dphy_rx *dphy, u8 dly, u8 cells);
 int dw_dphy_if_get_idelay(struct dw_dphy_rx *dphy);
 int dw_dphy_if_set_idelay_lane(struct dw_dphy_rx *dphy, u8 dly, u8 lane);
 int dw_dphy_create_capabilities_sysfs(struct platform_device *pdev);
