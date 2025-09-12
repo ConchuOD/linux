@@ -382,6 +382,13 @@ static void etnaviv_hw_identify(struct etnaviv_gpu *gpu)
 			}
 		}
 
+		/* Microchip SAMA7D65 */
+		if (etnaviv_is_model_rev(gpu, 0x300, 0x4660) &&
+		    chipDate == 0x20210318) {
+			gpu->identity.model = chipModel_GC520;
+			gpu->identity.revision = 3;
+		}
+
 		/*
 		 * NXP likes to call the GPU on the i.MX6QP GC2000+, but in
 		 * reality it's just a re-branded GC3000. We can identify this
