@@ -330,7 +330,7 @@
 		};
 	};
 
-	eeprom0: eeprom0@51 {
+	eeprom0: eeprom@51 {
 		compatible = "microchip,24aa025e48";
 		#address-cells = <1>;
 		#size-cells = <0>;
