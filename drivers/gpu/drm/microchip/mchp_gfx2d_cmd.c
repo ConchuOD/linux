@@ -612,7 +612,10 @@ static void mchp_gfx2d_run_command(struct mchp_gfx2d_device *priv,
 		mchp_gfx2d_set_surface(priv, 1, cmd->sources[0].gfx2d_obj);
 		mchp_gfx2d_set_surface(priv, 2, cmd->sources[1].gfx2d_obj);
 		if (cmd->blend.flags & GFX2D_BLEND_SET_DST_COLOR) {
-			mchp_gfx2d_ldr(priv, BLEND_DREG, cmd->blend.dst_color);
+			enum mchp_gfx2d_reg_id reg = priv->caps->has_dreg ?
+				BLEND_DREG :
+				BLEND_SREG;
+			mchp_gfx2d_ldr(priv, reg, cmd->blend.dst_color);
 			mchp_gfx2d_trigger(priv);
 			cmd->blend.flags &= ~GFX2D_BLEND_SET_DST_COLOR;
 		}
@@ -1186,7 +1189,7 @@ mchp_gfx2d_set_blend_params(struct mchp_gfx2d_device *priv,
 			    const struct drm_mchp_gfx2d_submit *args,
 			    struct mchp_gfx2d_command *cmd)
 {
-	bool src_c, dst_c;
+	bool src_c, dst_c, spre, dpre;
 	int ret;
 
 	if (args->blend.flags & ~(DRM_MCHP_GFX2D_BLEND_DPRE |
@@ -1201,20 +1204,23 @@ mchp_gfx2d_set_blend_params(struct mchp_gfx2d_device *priv,
 	if (cmd->blend.func > DRM_MCHP_GFX2D_BFUNC_SPE)
 		return -EINVAL;
 
+	spre = FIELD_GET(DRM_MCHP_GFX2D_BLEND_SPRE, args->blend.flags);
+	dpre = FIELD_GET(DRM_MCHP_GFX2D_BLEND_DPRE, args->blend.flags);
+
 	cmd->blend.src_color = args->blend.src_color;
-	src_c = mchp_gfx2d_blend_factor_uses_constant(args->blend.scfactor) ||
+	src_c = spre ||
+		mchp_gfx2d_blend_factor_uses_constant(args->blend.scfactor) ||
 		mchp_gfx2d_blend_factor_uses_constant(args->blend.safactor);
 
 	cmd->blend.dst_color = args->blend.dst_color;
-	dst_c = mchp_gfx2d_blend_factor_uses_constant(args->blend.dcfactor) ||
+	dst_c = dpre ||
+		mchp_gfx2d_blend_factor_uses_constant(args->blend.dcfactor) ||
 		mchp_gfx2d_blend_factor_uses_constant(args->blend.dafactor);
 
-	cmd->blend.flags = FIELD_PREP(GFX2D_BLEND_SET_SRC_COLOR, !!src_c) |
-		FIELD_PREP(GFX2D_BLEND_SET_DST_COLOR, !!dst_c) |
-		FIELD_PREP(GFX2D_BLEND_SPRE,
-			   FIELD_GET(DRM_MCHP_GFX2D_BLEND_SPRE, args->blend.flags)) |
-		FIELD_PREP(GFX2D_BLEND_DPRE,
-			   FIELD_GET(DRM_MCHP_GFX2D_BLEND_DPRE, args->blend.flags));
+	cmd->blend.flags = FIELD_PREP(GFX2D_BLEND_SET_SRC_COLOR, src_c) |
+		FIELD_PREP(GFX2D_BLEND_SET_DST_COLOR, dst_c) |
+		FIELD_PREP(GFX2D_BLEND_SPRE, spre) |
+		FIELD_PREP(GFX2D_BLEND_DPRE, dpre);
 
 	return 0;
 }

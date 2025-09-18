@@ -46,6 +46,7 @@
 #define PMC_LVDSPLL		(PMC_MAIN + 12)
 
 /* SAMA7D65 */
+#define PMC_GPUPLL		(PMC_MAIN + 13)
 #define PMC_MCK3		(PMC_MAIN + 20)
 #define PMC_MCK5		(PMC_MAIN + 21)
 

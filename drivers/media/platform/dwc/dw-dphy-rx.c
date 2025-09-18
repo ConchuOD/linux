@@ -95,7 +95,7 @@ u8 dw_dphy_setup_config(struct dw_dphy_rx *dphy)
 }
 
 #if IS_ENABLED(CONFIG_DWC_MIPI_TC_DPHY_GEN3)
-void dw_dphy_if_write(struct dw_dphy_rx *dphy, u32 address, u32 data)
+static void dw_dphy_if_write(struct dw_dphy_rx *dphy, u32 address, u32 data)
 {
 	writel(data, dphy->dphy1_if_addr + address);
 
