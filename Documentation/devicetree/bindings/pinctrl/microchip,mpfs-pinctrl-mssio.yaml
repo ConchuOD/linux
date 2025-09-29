@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/pinctrl/microchip,mpfs-pinctrl-mssio.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Microchip Polarfire SoC MSSIO pinctrl
+
+maintainers:
+  - Conor Dooley <conor.dooley@microchip.com>
+
+properties:
+  compatible:
+    const: microchip,mpfs-pinctrl-mssio
+
+  reg:
+    maxItems: 1
+
+  pinctrl-use-default: true
+
+patternProperties:
+  '-cfg$':
+    type: object
+    additionalProperties: false
+
+    patternProperties:
+      '-pins$':
+        type: object
+        additionalProperties: false
+
+        allOf:
+          - $ref: pincfg-node.yaml#
+          - $ref: pinmux-node.yaml#
+
+        properties:
+          pins:
+            description: |
+              The list of IOs that properties in the pincfg node apply to.
+
+          function:
+            description:
+              A string containing the name of the function to mux for these
+              pins. The "reserved" function tristates a pin.
+            enum: [ sd, emmc, qspi, spi, usb, uart, i2c, can, mdio, misc
+                    reserved, gpio, fabric-test, tied-low, tied-high, tristate ]
+
+          bias-bus-hold: true
+          bias-disable: true
+          bias-pull-down: true
+          bias-pull-up: true
+          input-schmitt-enable: true
+          low-power-enable: true
+
+          drive-strength:
+            enum: [ 2, 4, 6, 8, 10, 12, 16, 20 ]
+
+          microchip,clamp-diode:
+            $ref: /schemas/types.yaml#/definitions/flag
+            description: |
+              Reflects the "Clamp Diode" setting in the MSS Configurator for
+              this pin.
+
+          microchip,bank-lockdown:
+            $ref: /schemas/types.yaml#/definitions/flag
+            description: |
+              Reflects the "Lock Down Bank{2,4} I/Os" setting in the MSS
+              Configurator for this pin.
+
+          microchip,ibufmd:
+            $ref: /schemas/types.yaml#/definitions/uint32
+            default: 0
+            description: |
+              Reflects the "IBUFMD" bits in the MSS Configurator output files
+              for this pin.
+
+        required:
+          - pins
+          - function
+
+required:
+  - compatible
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+    pinctrl@204 {
+      compatible = "microchip,mpfs-pinctrl-mssio";
+      reg = <0x204 0x7c>;
+
+      irkd_sd_cfg: irkd-sd-cfg {
+        sd-10ma-pins {
+          pins = <0>, <1>, <2>, <3>, <4>, <5>, <8>, <9>, <10>, <11>, <12>, <13>;
+          function = "sd";
+          bias-pull-up;
+          drive-strength = <10>;
+        };
+
+        sd-8ma-pins {
+          pins = <6>, <7>;
+          function = "sd";
+          bias-pull-up;
+          drive-strength = <8>;
+        };
+      };
+    };
+...
