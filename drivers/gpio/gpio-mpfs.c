@@ -70,7 +70,7 @@ static int mpfs_gpio_direction_output(struct gpio_chip *gc, unsigned int gpio_in
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
 
 	regmap_update_bits(mpfs_gpio->regs, MPFS_GPIO_CTRL(gpio_index),
-			   MPFS_GPIO_DIR_MASK, MPFS_GPIO_EN_IN);
+			   MPFS_GPIO_DIR_MASK, MPFS_GPIO_EN_OUT | MPFS_GPIO_EN_OUT_BUF);
 	regmap_update_bits(mpfs_gpio->regs, mpfs_gpio->offsets->outp, BIT(gpio_index),
 			   value << gpio_index);
 
@@ -116,7 +116,7 @@ static int mpfs_gpio_irq_set_type(struct irq_data *data, unsigned int type)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
+	int gpio_index = irqd_to_hwirq(data);
 	u32 interrupt_type;
 
 	switch (type) {
@@ -147,7 +147,7 @@ static void mpfs_gpio_irq_unmask(struct irq_data *data)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
+	int gpio_index = irqd_to_hwirq(data);
 
 	gpiochip_enable_irq(gc, gpio_index);
 	mpfs_gpio_direction_input(gc, gpio_index);
@@ -159,7 +159,7 @@ static void mpfs_gpio_irq_mask(struct irq_data *data)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
 	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(data) % 32;
+	int gpio_index = irqd_to_hwirq(data);
 
 	regmap_update_bits(mpfs_gpio->regs, MPFS_GPIO_CTRL(gpio_index),
 			   MPFS_GPIO_EN_INT, 0);
@@ -178,23 +178,24 @@ static const struct irq_chip mpfs_gpio_irqchip = {
 static void mpfs_gpio_irq_handler(struct irq_desc *desc)
 {
 	struct irq_chip *irqchip = irq_desc_get_chip(desc);
-	struct gpio_chip *gc = irq_data_get_irq_chip_data(&desc->irq_data);
-	struct mpfs_gpio_chip *mpfs_gpio = gpiochip_get_data(gc);
-	int gpio_index = irqd_to_hwirq(&desc->irq_data) % 32;
+	struct mpfs_gpio_chip *mpfs_gpio = irq_desc_get_handler_data(desc);
 	unsigned int status;
+	int i;
 
 	/*
 	 * Since the parent may be a muxed/"non-direct" interrupt, this
 	 * interrupt may not be for us.
 	 */
 	regmap_read(mpfs_gpio->regs, MPFS_IRQ_REG, &status);
-	if (!(status & BIT(gpio_index)))
+	if (!status)
 		return;
 
 	chained_irq_enter(irqchip, desc);
 
-	generic_handle_irq(irq_find_mapping(mpfs_gpio->gc.irq.domain, gpio_index));
-	regmap_write(mpfs_gpio->regs, MPFS_IRQ_REG, BIT(gpio_index));
+	for_each_set_bit(i, (unsigned long *)&status, mpfs_gpio->gc.ngpio) {
+		generic_handle_irq(irq_find_mapping(mpfs_gpio->gc.irq.domain, i));
+		regmap_write(mpfs_gpio->regs, MPFS_IRQ_REG, BIT(i));
+	}
 
 	chained_irq_exit(irqchip, desc);
 }
@@ -255,6 +256,7 @@ static int mpfs_gpio_probe(struct platform_device *pdev)
 	if (girq->num_parents) {
 		gpio_irq_chip_set_chip(girq, &mpfs_gpio_irqchip);
 		girq->parent_handler = mpfs_gpio_irq_handler;
+		girq->parent_handler_data = mpfs_gpio;
 
 		girq->parents = devm_kcalloc(&pdev->dev, girq->num_parents,
 					     sizeof(*girq->parents), GFP_KERNEL);
@@ -269,9 +271,6 @@ static int mpfs_gpio_probe(struct platform_device *pdev)
 				return ret;
 
 			girq->parents[i] = ret;
-
-			irq_set_chip_data(ret, &mpfs_gpio->gc);
-			irq_set_handler(ret, handle_simple_irq);
 		}
 
 		girq->handler = handle_simple_irq;

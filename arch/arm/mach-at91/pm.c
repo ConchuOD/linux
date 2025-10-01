@@ -633,7 +633,7 @@ extern u32 at91_pm_suspend_in_sram_sz;
 
 static int at91_suspend_finish(unsigned long val)
 {
-	/* SYNOPSYS workaround to fix a bug in the calibration logic (SYNOPSYS Case Number 01331341) */
+	/* SYNOPSYS workaround to fix a bug in the calibration logic */
 	unsigned char modified_fix_code[] = {
 		0x00, 0x01, 0x01, 0x06, 0x07, 0x0c, 0x06, 0x07, 0x0b, 0x18,
 		0x0a, 0x0b, 0x0c, 0x0d, 0x0d, 0x0a, 0x13, 0x13, 0x12, 0x13,

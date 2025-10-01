@@ -15,7 +15,9 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 	model = "Microchip PolarFire-SoC Discovery Kit";
-	compatible = "microchip,mpfs-disco-kit", "microchip,mpfs";
+	compatible = "microchip,mpfs-disco-kit-reference-rtl-v2507",
+		     "microchip,mpfs-disco-kit",
+		     "microchip,mpfs";
 
 	soc {
 		dma-ranges = <0x14 0x0 0x0 0x80000000 0x0 0x4000000>,
