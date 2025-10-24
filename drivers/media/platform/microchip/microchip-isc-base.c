@@ -1457,11 +1457,11 @@ static void isc_awb_work(struct work_struct *w)
 			isc_stats_isr(&isc->stats);
 		else
 			dev_info(isc->dev, "No active userspace listeners\n");
-	}
 
-	/* Continue with AWB processing only if AWB is enabled */
-	if (ctrls->awb != ISC_WB_NONE) {
-		isc_wb_update(ctrls);
+		/* Continue with AWB processing only if AWB is enabled */
+		if (ctrls->awb != ISC_WB_NONE)
+			isc_wb_update(ctrls);
+
 		hist_id = ISC_HIS_CFG_MODE_GR;
 	}
 
