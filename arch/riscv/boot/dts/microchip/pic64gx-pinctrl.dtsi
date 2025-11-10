@@ -80,9 +80,19 @@
 		groups = "mdio0";
 	};
 
+	mdio0_gpio: mux-mac0-gpio {
+		function = "gpio";
+		groups = "gpio_mdio0";
+	};
+
 	mdio1_default: mux-mac1 {
 		function = "mdio1";
 		groups = "mdio1";
+	};
+
+	mdio1_gpio: mux-mac1-gpio {
+		function = "gpio";
+		groups = "gpio_mdio1";
 	};
 
 	spi0_default: mux-spi0 {
@@ -90,9 +100,19 @@
 		groups = "spi0";
 	};
 
+	spi0_gpio: mux-spi0-gpio {
+		function = "gpio";
+		groups = "gpio_spi0";
+	};
+
 	can0_default: mux-can0 {
 		function = "can0";
 		groups = "can0";
+	};
+
+	can0_gpio: mux-can0-gpio {
+		function = "gpio";
+		groups = "gpio_can0";
 	};
 
 	pcie_default: mux-pcie {
@@ -100,9 +120,19 @@
 		groups = "pcie";
 	};
 
+	pcie_gpio: mux-pcie-gpio {
+		function = "gpio";
+		groups = "gpio_pcie";
+	};
+
 	qspi_default: mux-qspi0 {
 		function = "qspi";
 		groups = "qspi";
+	};
+
+	qspi_gpio: mux-qspi0-gpio {
+		function = "gpio";
+		groups = "gpio_qspi";
 	};
 
 	uart3_default: mux-uart3 {
@@ -110,9 +140,19 @@
 		groups = "uart3";
 	};
 
+	uart3_gpio: mux-uart3-gpio {
+		function = "gpio";
+		groups = "gpio_uart3";
+	};
+
 	uart4_default: mux-uart4 {
 		function = "uart4";
 		groups = "uart4";
+	};
+
+	uart4_gpio: mux-uart4-gpio {
+		function = "gpio";
+		groups = "gpio_uart4";
 	};
 
 	can1_default: mux-can1 {
@@ -120,15 +160,19 @@
 		groups = "can1";
 	};
 
+	can1_gpio: mux-can1-gpio {
+		function = "gpio";
+		groups = "gpio_can1";
+	};
+
 	uart2_default: mux-uart2 {
 		function = "uart2";
 		groups = "uart2";
 	};
 
-	gpio2_default: mux-gpio2 {
+	uart2_gpio: mux-uart2-gpio {
 		function = "gpio";
-		groups = "gpio_mdio1", "gpio_spi0", "gpio_can0", "gpio_pcie",
-			 "gpio_qspi", "gpio_uart3", "gpio_uart4", "gpio_can1";
+		groups = "gpio_uart2";
 	};
 };
 

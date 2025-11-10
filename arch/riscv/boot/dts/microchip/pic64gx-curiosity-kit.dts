@@ -79,7 +79,8 @@
 
 &gpio2 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&gpio2_default>;
+	pinctrl-0 = <&mdio1_gpio>, <&spi0_gpio>, <&can0_gpio>, <&pcie_gpio>,
+		    <&qspi_gpio>, <&uart3_gpio>, <&uart4_gpio>, <&can1_gpio>;
 	status ="okay";
 	gpio-line-names =
 		"", "", "", "", "", "", "SWITCH2", "USR_IO12",
