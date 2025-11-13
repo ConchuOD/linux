@@ -40,6 +40,7 @@ required:
   - reg
   - interrupts
   - clocks
+  - required
 
 additionalProperties: false
 
