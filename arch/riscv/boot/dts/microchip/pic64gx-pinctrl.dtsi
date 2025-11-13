@@ -80,7 +80,7 @@
 		groups = "mdio0";
 	};
 
-	mdio0_gpio: mux-mac0-gpio {
+	mdio0_gpio: mux-mac0-gpio2 {
 		function = "gpio";
 		groups = "gpio_mdio0";
 	};
@@ -90,7 +90,7 @@
 		groups = "mdio1";
 	};
 
-	mdio1_gpio: mux-mac1-gpio {
+	mdio1_gpio: mux-mac1-gpio2 {
 		function = "gpio";
 		groups = "gpio_mdio1";
 	};
@@ -100,7 +100,7 @@
 		groups = "spi0";
 	};
 
-	spi0_gpio: mux-spi0-gpio {
+	spi0_gpio: mux-spi0-gpio2 {
 		function = "gpio";
 		groups = "gpio_spi0";
 	};
@@ -110,7 +110,7 @@
 		groups = "can0";
 	};
 
-	can0_gpio: mux-can0-gpio {
+	can0_gpio: mux-can0-gpio2 {
 		function = "gpio";
 		groups = "gpio_can0";
 	};
@@ -120,7 +120,7 @@
 		groups = "pcie";
 	};
 
-	pcie_gpio: mux-pcie-gpio {
+	pcie_gpio: mux-pcie-gpio2 {
 		function = "gpio";
 		groups = "gpio_pcie";
 	};
@@ -130,7 +130,7 @@
 		groups = "qspi";
 	};
 
-	qspi_gpio: mux-qspi0-gpio {
+	qspi_gpio: mux-qspi0-gpio2 {
 		function = "gpio";
 		groups = "gpio_qspi";
 	};
@@ -140,7 +140,7 @@
 		groups = "uart3";
 	};
 
-	uart3_gpio: mux-uart3-gpio {
+	uart3_gpio: mux-uart3-gpio2 {
 		function = "gpio";
 		groups = "gpio_uart3";
 	};
@@ -150,7 +150,7 @@
 		groups = "uart4";
 	};
 
-	uart4_gpio: mux-uart4-gpio {
+	uart4_gpio: mux-uart4-gpio2 {
 		function = "gpio";
 		groups = "gpio_uart4";
 	};
@@ -160,7 +160,7 @@
 		groups = "can1";
 	};
 
-	can1_gpio: mux-can1-gpio {
+	can1_gpio: mux-can1-gpio2 {
 		function = "gpio";
 		groups = "gpio_can1";
 	};
@@ -170,7 +170,7 @@
 		groups = "uart2";
 	};
 
-	uart2_gpio: mux-uart2-gpio {
+	uart2_gpio: mux-uart2-gpio2 {
 		function = "gpio";
 		groups = "gpio_uart2";
 	};
